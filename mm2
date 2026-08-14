@@ -1,0 +1,2650 @@
+-- ⚡ vbnx V2 - Code mis à jour avec Onglet Crosshairs Animés (Cœurs, Vitesses, Shift Lock Automatique & Couleur Personnalisable)
+--[========================================================================]
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
+local Camera = Workspace.CurrentCamera
+
+local localPlayer = Players.LocalPlayer
+local playerGui = localPlayer:WaitForChild("PlayerGui")
+
+local SAVE_FILE_NAME = "PrimeV2_Settings.json"
+local KEY_FILE_NAME = "PrimeV2_Key.json"
+local CORRECT_KEY = "SFAR"
+
+local function loadData(filename)
+	local success, data = pcall(function()
+		if readfile and isfile and isfile(filename) then
+			return HttpService:JSONDecode(readfile(filename))
+		end
+	end)
+	if success and type(data) == "table" then
+		return data
+	end
+	return {}
+end
+
+local function saveData(filename, data)
+	pcall(function()
+		if writefile then
+			writefile(filename, HttpService:JSONEncode(data))
+		end
+	end)
+end
+
+local savedSettings = loadData(SAVE_FILE_NAME)
+local savedKeyData = loadData(KEY_FILE_NAME)
+
+if playerGui:FindFirstChild("UltraModernPanel") then playerGui.UltraModernPanel:Destroy() end
+if playerGui:FindFirstChild("SheriffCrosshairGui") then playerGui.SheriffCrosshairGui:Destroy() end
+if playerGui:FindFirstChild("PrimeKeySystemGui") then playerGui.PrimeKeySystemGui:Destroy() end
+if playerGui:FindFirstChild("AimlockFloatingPanel") then playerGui.AimlockFloatingPanel:Destroy() end
+if playerGui:FindFirstChild("ShiftLockAlertGui") then playerGui.ShiftLockAlertGui:Destroy() end
+if Workspace:FindFirstChild("ESPFolder") then Workspace.ESPFolder:Destroy() end
+
+local currentLanguage = savedSettings.Language or "FR"
+
+local translations = {
+	FR = {
+		Brand = "zizi le gay",
+		Home = "Accueil",
+		ESP = "ESP",
+		AutoFarm = "Autofarm",
+		SheriffTab = "Sheriff",
+		MurderTab = "Murderer",
+		TrollTab = "Troll",
+		CrosshairTab = "Crosshairs",
+		Themes = "Thèmes",
+		Backgrounds = "Fonds",
+		Settings = "Paramètres",
+		User = "User : ",
+		Pseudo = "Pseudo : @",
+		MurderChance = "🎯 Chance Murderer :",
+		StatusDisabled = "Statut : Off",
+		Enable = "On",
+		DisableRefuse = "Off",
+		AloneServer = "Seul (100%)",
+		ChanceRound = "~%.1f%% (%d joueurs)",
+		EspMm2 = "   ESP : ",
+		NoClip = "   Noclip : ",
+		Freecam = "   Freecam : ",
+		AutoFarmCoins = "   Autofarm : ",
+		SpeedAutoFarm = "⚡ Vitesse : ",
+		SpeedAutoFarmHint = "(Plus haut = plus rapide)",
+		WaitMap = "   Autofarm : Attente map...",
+		TargetMurder = "   Target Murderer : ",
+		TargetSheriff = "   Target Sheriff : ",
+		TornadoSpeedLabel = "🌪️ Vitesse Rotation : ",
+		TornadoSpeedHint = "(Vitesse folle > 3000)",
+		InstantKillAll = "   Instant Kill All : ",
+		InfiniteJump = "   Infinite Jump : ",
+		TpMapCenter = "   TP Centre Map",
+		TpRoof = "   TP Roof",
+		TpSpawn = "   TP Spawn",
+		EnglishSheriff = "   Auto Equip Gun : ",
+		SheriffAimlock = "   Aimlock (Cou + ShiftLock) : ",
+		SheriffSilentAim = "   Silent Aim : ",
+		AutoShootMurder = "   aim lock for clip : ",
+		AutoGrabGun = "   Auto Grab gun : ",
+		TpSheriff = "   TP Shérif",
+		TpMurder = "   TP Murderer",
+		ThemeCyber = "Cyber Néon",
+		ThemeNeon = "Améthyste",
+		ThemeEmerald = "Émeraude",
+		ThemeObsidian = "Obsidienne",
+		BgBubbles = "Bulles",
+		BgCubes = "Cubes",
+		BgStars = "Étoiles",
+		LangToggle = "🌍 Langue : Français",
+		CoinTransitSpeed = "🚀 Vitesse Pièces : ",
+		TransitHint = "(Vitesse déplacement)",
+		ShiftLockAlert = "Shift lock activé automatiquement ! / Shift lock enabled automatically!",
+		CrosshairEnable = "   Activer Crosshair Animé : ",
+		CrosshairSpeed = "⚡ Vitesse Animation : ",
+		CrosshairColor = "🎨 Changer Couleur (RVB Hex/Preset)"
+	},
+	EN = {
+		Brand = "⚡ zizi le gay",
+		Home = "Home",
+		ESP = "ESP",
+		AutoFarm = "Autofarm",
+		SheriffTab = "Sheriff",
+		MurderTab = "Murderer",
+		TrollTab = "Troll",
+		CrosshairTab = "Crosshairs",
+		Themes = "Themes",
+		Backgrounds = "Backgrounds",
+		Settings = "Settings",
+		User = "User: ",
+		Pseudo = "Handle: @",
+		MurderChance = "🎯 Murderer Chance:",
+		StatusDisabled = "Status: Off",
+		Enable = "On",
+		DisableRefuse = "Off",
+		AloneServer = "Alone (100%)",
+		ChanceRound = "~%.1f%% (%d players)",
+		EspMm2 = "   ESP: ",
+		NoClip = "   Noclip = ", 
+		Freecam = "   Freecam: ",
+		AutoFarmCoins = "   Autofarm: ",
+		SpeedAutoFarm = "   Speed: ",
+		SpeedAutoFarmHint = "(Higher = faster)",
+		WaitMap = "   Autofarm: Waiting...",
+		TargetMurder = "   Target Murderer: ",
+		TargetSheriff = "   Target Sheriff: ",
+		TornadoSpeedLabel = "🌪️ Rotation Speed: ",
+		TornadoSpeedHint = "(Crazy speed > 3000)",
+		InstantKillAll = "   Instant Kill All : ",
+		InfiniteJump = "   Infinite Jump: ",
+		TpMapCenter = "   TP Map Center",
+		TpRoof = "   TP Roof",
+		TpSpawn = "   TP Spawn",
+		EnglishSheriff = "   Auto Equip Gun: ",
+		SheriffAimlock = "   Aimlock (Neck + ShiftLock) : ",
+		SheriffSilentAim = "   Silent Aim: ",
+		AutoShootMurder = "     aim lock clip: ",
+		AutoGrabGun = "   Auto Grab Gun : ",
+		TpSheriff = "   TP Sheriff",
+		TpMurder = "   TP Murderer",
+		ThemeCyber = "Cyber Neon",
+		ThemeNeon = "Amethyst",
+		ThemeEmerald = "Emerald",
+		ThemeObsidian = "Obsidian",
+		BgBubbles = "Bubbles",
+		BgCubes = "Cubes",
+		BgStars = "Stars",
+		LangToggle = "🌍 Language: English",
+		CoinTransitSpeed = "🚀 Coin Transit: ",
+		TransitHint = "(Travel speed)",
+		ShiftLockAlert = "Shift lock activé automatiquement ! / Shift lock enabled automatically!",
+		CrosshairEnable = "   Enable Animated Crosshair: ",
+		CrosshairSpeed = "⚡ Animation Speed: ",
+		CrosshairColor = "🎨 Change Color"
+	}
+}
+
+local function L(key)
+	if translations[currentLanguage] and translations[currentLanguage][key] then
+		return translations[currentLanguage][key]
+	end
+	return key
+end
+
+local function playKeyboardSound()
+	pcall(function()
+		local sound = Instance.new("Sound")
+		sound.SoundId = "rbxassetid://6895070853" 
+		sound.Volume = 1
+		sound.Pitch = math.random(95, 105) / 100
+		sound.Parent = playerGui
+		sound:Play()
+		sound.Ended:Connect(function() sound:Destroy() end)
+	end)
+end
+
+local function showShiftLockAlert()
+	if playerGui:FindFirstChild("ShiftLockAlertGui") then
+		playerGui.ShiftLockAlertGui:Destroy()
+	end
+
+	local alertGui = Instance.new("ScreenGui")
+	alertGui.Name = "ShiftLockAlertGui"
+	alertGui.ResetOnSpawn = false
+	alertGui.Parent = playerGui
+
+	local alertFrame = Instance.new("Frame")
+	alertFrame.Size = UDim2.new(0, 450, 0, 65)
+	alertFrame.Position = UDim2.new(0.5, -225, 0.1, 0)
+	alertFrame.BackgroundColor3 = Color3.fromRGB(14, 16, 24)
+	alertFrame.BackgroundTransparency = 0.1
+	alertFrame.BorderSizePixel = 0
+	alertFrame.Parent = alertGui
+
+	local alertCorner = Instance.new("UICorner")
+	alertCorner.CornerRadius = UDim.new(0, 14)
+	alertCorner.Parent = alertFrame
+
+	local alertStroke = Instance.new("UIStroke")
+	alertStroke.Color = Color3.fromRGB(255, 120, 120)
+	alertStroke.Thickness = 2
+	alertStroke.Transparency = 0.3
+	alertStroke.Parent = alertFrame
+
+	local alertText = Instance.new("TextLabel")
+	alertText.Size = UDim2.new(1, 0, 1, 0)
+	alertText.BackgroundTransparency = 1
+	alertText.Text = L("ShiftLockAlert")
+	alertText.TextColor3 = Color3.fromRGB(255, 255, 255)
+	alertText.TextSize = 14
+	alertText.Font = Enum.Font.GothamBold
+	alertText.Parent = alertFrame
+
+	task.spawn(function()
+		task.wait(4)
+		if alertGui and alertGui.Parent then
+			TweenService:Create(alertFrame, TweenInfo.new(0.5), { BackgroundTransparency = 1 }):Play()
+			TweenService:Create(alertText, TweenInfo.new(0.5), { TextTransparency = 1 }):Play()
+			task.wait(0.5)
+			alertGui:Destroy()
+		end
+	end)
+end
+
+-- Fonction pour activer automatiquement le Shift Lock natif / simulé Roblox
+local function enableNativeShiftLock()
+	pcall(function()
+		local playerModule = localPlayer:FindFirstChild("PlayerScripts") and localPlayer.PlayerScripts:FindFirstChild("PlayerModule")
+		if playerModule then
+			local camModule = require(playerModule):GetService("CameraModule")
+			if camModule and camModule.SetActiveShiftLock then
+				-- Force l'activation du shiftlock interne si disponible
+				local ok = pcall(function()
+					local shiftLockController = require(playerModule.CameraModule.ShiftLockController)
+					if shiftLockController and not shiftLockController:IsShiftLocked() then
+						shiftLockController:ToggleShiftLock()
+					end
+				end)
+			end
+		end
+		-- Simulation visuelle et mécanique alternative
+		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+		showShiftLockAlert()
+	end)
+end
+
+local aimlockFloatGui = nil
+local floatActiveState = false
+
+local function toggleAimlockFloatingPanel(enable)
+	if enable then
+		if aimlockFloatGui and aimlockFloatGui.Parent then return end
+		
+		aimlockFloatGui = Instance.new("ScreenGui")
+		aimlockFloatGui.Name = "AimlockFloatingPanel"
+		aimlockFloatGui.ResetOnSpawn = false
+		aimlockFloatGui.Parent = playerGui
+
+		local floatFrame = Instance.new("Frame")
+		floatFrame.Name = "FloatFrame"
+		floatFrame.Size = UDim2.new(0, 190, 0, 45)
+		floatFrame.Position = UDim2.new(0.5, -95, 0.85, 0)
+		floatFrame.BackgroundColor3 = Color3.fromRGB(14, 16, 24)
+		floatFrame.BorderSizePixel = 0
+		floatFrame.Active = true
+		floatFrame.Draggable = true
+		floatFrame.Parent = aimlockFloatGui
+
+		local floatCorner = Instance.new("UICorner")
+		floatCorner.CornerRadius = UDim.new(0, 12)
+		floatCorner.Parent = floatFrame
+
+		local floatStroke = Instance.new("UIStroke")
+		floatStroke.Color = floatActiveState and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(140, 150, 230)
+		floatStroke.Thickness = 1.5
+		floatStroke.Transparency = 0.4
+		floatStroke.Parent = floatFrame
+
+		local floatBtn = Instance.new("TextButton")
+		floatBtn.Size = UDim2.new(1, 0, 1, 0)
+		floatBtn.BackgroundTransparency = 1
+		floatBtn.Text = floatActiveState and "Aimlock + ShiftLock : ON" or "Aimlock + ShiftLock : OFF"
+		floatBtn.TextColor3 = floatActiveState and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(255, 90, 90)
+		floatBtn.TextSize = 12
+		floatBtn.Font = Enum.Font.GothamBold
+		floatBtn.Parent = floatFrame
+
+		floatBtn.MouseButton1Click:Connect(function()
+			playKeyboardSound()
+			floatActiveState = not floatActiveState
+			if floatActiveState then
+				floatBtn.Text = "Aimlock + ShiftLock : ON"
+				floatBtn.TextColor3 = Color3.fromRGB(90, 255, 90)
+				floatStroke.Color = Color3.fromRGB(90, 255, 90)
+				enableNativeShiftLock()
+			else
+				floatBtn.Text = "Aimlock + ShiftLock : OFF"
+				floatBtn.TextColor3 = Color3.fromRGB(255, 90, 90)
+				floatStroke.Color = Color3.fromRGB(140, 150, 230)
+				UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+			end
+		end)
+	else
+		if aimlockFloatGui then
+			aimlockFloatGui:Destroy()
+			aimlockFloatGui = nil
+		end
+		floatActiveState = false
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+	end
+end
+
+local function launchMainInterface()
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "UltraModernPanel"
+	screenGui.ResetOnSpawn = false
+	screenGui.Parent = playerGui
+
+	local espFolder = Instance.new("Folder")
+	espFolder.Name = "ESPFolder"
+	espFolder.Parent = Workspace
+
+	local miniButton = Instance.new("ImageButton")
+	miniButton.Name = "MiniButton"
+	miniButton.Size = UDim2.new(0, 48, 0, 48)
+	miniButton.Position = UDim2.new(0.5, -24, 0, 15)
+	miniButton.BackgroundColor3 = Color3.fromRGB(18, 20, 30)
+	miniButton.Image = "rbxassetid://138676231904724"
+	miniButton.ScaleType = Enum.ScaleType.Fit
+	miniButton.Visible = false
+	miniButton.ZIndex = 10
+	miniButton.Parent = screenGui
+
+	local miniCorner = Instance.new("UICorner")
+	miniCorner.CornerRadius = UDim.new(1, 0)
+	miniCorner.Parent = miniButton
+
+	local miniStroke = Instance.new("UIStroke")
+	miniStroke.Color = Color3.fromRGB(140, 150, 220)
+	miniStroke.Thickness = 1.8
+	miniStroke.Transparency = 0.2
+	miniStroke.Parent = miniButton
+
+	local mainFrame = Instance.new("Frame")
+	mainFrame.Name = "MainFrame"
+	mainFrame.Size = UDim2.new(0, 700, 0, 460)
+	mainFrame.Position = UDim2.new(0.5, -350, 0.5, -230)
+	mainFrame.BackgroundColor3 = Color3.fromRGB(11, 13, 20)
+	mainFrame.BorderSizePixel = 0
+	mainFrame.ClipsDescendants = true
+	mainFrame.Parent = screenGui
+
+	local mainCorner = Instance.new("UICorner")
+	mainCorner.CornerRadius = UDim.new(0, 24)
+	mainCorner.Parent = mainFrame
+
+	local mainStroke = Instance.new("UIStroke")
+	mainStroke.Color = Color3.fromRGB(140, 150, 230)
+	mainStroke.Thickness = 2
+	mainStroke.Transparency = 0.5
+	mainStroke.Parent = mainFrame
+
+	local topBar = Instance.new("Frame")
+	topBar.Size = UDim2.new(1, 0, 0, 45)
+	topBar.BackgroundTransparency = 1
+	topBar.ZIndex = 4
+	topBar.Parent = mainFrame
+
+	local logoImage = Instance.new("ImageLabel")
+	logoImage.Size = UDim2.new(0, 36, 0, 36)
+	logoImage.Position = UDim2.new(0, 14, 0, 5)
+	logoImage.BackgroundTransparency = 1
+	logoImage.Image = "rbxassetid://138676231904724"
+	logoImage.Parent = topBar
+
+	local resizeCorner = Instance.new("TextButton")
+	resizeCorner.Size = UDim2.new(0, 20, 0, 20)
+	resizeCorner.Position = UDim2.new(1, -20, 1, -20)
+	resizeCorner.BackgroundTransparency = 1
+	resizeCorner.Text = "◢"
+	resizeCorner.TextColor3 = Color3.fromRGB(140, 150, 230)
+	resizeCorner.TextSize = 14
+	resizeCorner.ZIndex = 10
+	resizeCorner.Parent = mainFrame
+
+	local resizing = false
+	resizeCorner.MouseButton1Down:Connect(function()
+		resizing = true
+	end)
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			resizing = false
+		end
+	end)
+
+	RunService.RenderStepped:Connect(function()
+		if resizing then
+			local mousePos = UserInputService:GetMouseLocation()
+			local newWidth = math.clamp(mousePos.X - mainFrame.AbsolutePosition.X, 450, 1200)
+			local newHeight = math.clamp(mousePos.Y - mainFrame.AbsolutePosition.Y, 300, 800)
+			mainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
+		end
+	end)
+
+	local closeBtn = Instance.new("TextButton")
+	closeBtn.Name = "CloseButton"
+	closeBtn.Size = UDim2.new(0, 36, 0, 36)
+	closeBtn.Position = UDim2.new(1, -48, 0, 5)
+	closeBtn.BackgroundColor3 = Color3.fromRGB(25, 28, 40)
+	closeBtn.BackgroundTransparency = 0.3
+	closeBtn.Text = "✕"
+	closeBtn.TextColor3 = Color3.fromRGB(230, 235, 250)
+	closeBtn.TextSize = 15
+	closeBtn.Font = Enum.Font.GothamBold
+	closeBtn.ZIndex = 5
+	closeBtn.Parent = topBar
+
+	local closeCorner = Instance.new("UICorner")
+	closeCorner.CornerRadius = UDim.new(0, 12)
+	closeCorner.Parent = closeBtn
+
+	local closeStroke = Instance.new("UIStroke")
+	closeStroke.Color = Color3.fromRGB(255, 90, 90)
+	closeStroke.Thickness = 1.5
+	closeStroke.Transparency = 0.4
+	closeStroke.Parent = closeBtn
+
+	closeBtn.MouseEnter:Connect(function()
+		TweenService:Create(closeBtn, TweenInfo.new(0.2), { BackgroundColor3 = Color3.fromRGB(220, 50, 70), BackgroundTransparency = 0.05, TextColor3 = Color3.fromRGB(255, 255, 255) }):Play()
+	end)
+
+	closeBtn.MouseLeave:Connect(function()
+		TweenService:Create(closeBtn, TweenInfo.new(0.2), { BackgroundColor3 = Color3.fromRGB(25, 28, 40), BackgroundTransparency = 0.3, TextColor3 = Color3.fromRGB(230, 235, 250) }):Play()
+	end)
+
+	local bgContainer = Instance.new("Folder")
+	bgContainer.Name = "DynamicBackground"
+	bgContainer.Parent = mainFrame
+
+	local bgElements = {}
+
+	local function clearBackground()
+		for _, el in ipairs(bgElements) do
+			if el.Obj then el.Obj:Destroy() end
+		end
+		bgElements = {}
+	end
+
+	local function generateBackground(mode)
+		clearBackground()
+		local count = (mode == "Stars") and 22 or 14
+		for i = 1, count do
+			local p = Instance.new("Frame")
+			local size = (mode == "Stars") and math.random(15, 35) or math.random(60, 140)
+			p.Size = UDim2.new(0, size, 0, size)
+			p.Position = UDim2.new(math.random(), 0, math.random(), 0)
+			p.BackgroundColor3 = Color3.fromRGB(math.random(80, 160), math.random(120, 230), math.random(220, 255))
+			p.BackgroundTransparency = 0.82
+			p.BorderSizePixel = 0
+			
+			local corner = Instance.new("UICorner")
+			if mode == "Bubbles" then corner.CornerRadius = UDim.new(1, 0)
+			elseif mode == "Cubes" then corner.CornerRadius = UDim.new(0, 10)
+			else corner.CornerRadius = UDim.new(0.3, 0) end
+			corner.Parent = p
+			
+			p.Parent = bgContainer
+			table.insert(bgElements, { Obj = p, SpeedX = math.random(-12, 12) / 100, SpeedY = math.random(-12, 12) / 100, RotSpeed = math.random(-25, 25) })
+		end
+	end
+
+	generateBackground("Bubbles")
+
+	RunService.RenderStepped:Connect(function(dt)
+		for _, data in ipairs(bgElements) do
+			if data.Obj and data.Obj.Parent then
+				local pos = data.Obj.Position
+				local nx = (pos.X.Scale + data.SpeedX * dt) % 1
+				local ny = (pos.Y.Scale + data.SpeedY * dt) % 1
+				data.Obj.Position = UDim2.new(nx, pos.X.Offset, ny, pos.Y.Offset)
+				data.Obj.Rotation = data.Obj.Rotation + (data.RotSpeed * dt)
+			end
+		end
+	end)
+
+	local sidebar = Instance.new("Frame")
+	sidebar.Size = UDim2.new(0, 210, 1, 0)
+	sidebar.Position = UDim2.new(0, 0, 0, 0)
+	sidebar.BackgroundColor3 = Color3.fromRGB(8, 10, 16)
+	sidebar.BackgroundTransparency = 0.3
+	sidebar.BorderSizePixel = 0
+	sidebar.Parent = mainFrame
+
+	local sideList = Instance.new("UIListLayout")
+	sideList.SortOrder = Enum.SortOrder.LayoutOrder
+	sideList.Padding = UDim.new(0, 6)
+	sideList.Parent = sidebar
+
+	local sidePadding = Instance.new("UIPadding")
+	sidePadding.PaddingTop = UDim.new(0, 50)
+	sidePadding.PaddingLeft = UDim.new(0, 12)
+	sidePadding.PaddingRight = UDim.new(0, 12)
+	sidePadding.Parent = sidebar
+
+	local brand = Instance.new("TextLabel")
+	brand.Size = UDim2.new(1, 0, 0, 35)
+	brand.BackgroundTransparency = 1
+	brand.Text = L("Brand")
+	brand.TextColor3 = Color3.fromRGB(255, 255, 255)
+	brand.TextSize = 19
+	brand.Font = Enum.Font.GothamBold
+	brand.TextXAlignment = Enum.TextXAlignment.Left
+	brand.LayoutOrder = 0
+	brand.Parent = sidebar
+
+	local contentArea = Instance.new("Frame")
+	contentArea.Size = UDim2.new(1, -210, 1, 0)
+	contentArea.Position = UDim2.new(0, 210, 0, 0)
+	contentArea.BackgroundTransparency = 1
+	contentArea.Parent = mainFrame
+
+	local pages = {
+		Home = Instance.new("ScrollingFrame"),
+		ESP = Instance.new("ScrollingFrame"),
+		AutoFarm = Instance.new("ScrollingFrame"),
+		SheriffTab = Instance.new("ScrollingFrame"),
+		MurderTab = Instance.new("ScrollingFrame"),
+		TrollTab = Instance.new("ScrollingFrame"),
+		CrosshairTab = Instance.new("ScrollingFrame"),
+		Themes = Instance.new("ScrollingFrame"),
+		Backgrounds = Instance.new("ScrollingFrame")
+	}
+
+	for name, page in pairs(pages) do
+		page.Name = name .. "Page"
+		page.Size = UDim2.new(1, 0, 1, 0)
+		page.BackgroundTransparency = 1
+		page.BorderSizePixel = 0
+		page.ScrollBarThickness = 3
+		page.CanvasSize = UDim2.new(0, 0, 0, 1400)
+		page.Visible = (name == "Home")
+		page.Parent = contentArea
+		
+		local pad = Instance.new("UIPadding")
+		pad.PaddingTop = UDim.new(0, 28)
+		pad.PaddingLeft = UDim.new(0, 25)
+		pad.PaddingRight = UDim.new(0, 25)
+		pad.Parent = page
+		
+		local layout = Instance.new("UIListLayout")
+		layout.SortOrder = Enum.SortOrder.LayoutOrder
+		layout.Padding = UDim.new(0, 12)
+		layout.Parent = page
+	end
+
+	local function createPageTitle(textKey, parentPage)
+		local title = Instance.new("TextLabel")
+		title.Name = "Title_" .. textKey
+		title.Size = UDim2.new(1, 0, 0, 35)
+		title.BackgroundTransparency = 1
+		title.Text = L(textKey)
+		title.TextColor3 = Color3.fromRGB(255, 255, 255)
+		title.TextSize = 22
+		title.Font = Enum.Font.GothamBold
+		title.TextXAlignment = Enum.TextXAlignment.Left
+		title.LayoutOrder = 1
+		title.Parent = parentPage
+	end
+
+	createPageTitle("Home", pages.Home)
+	createPageTitle("ESP", pages.ESP)
+	createPageTitle("AutoFarm", pages.AutoFarm)
+	createPageTitle("SheriffTab", pages.SheriffTab)
+	createPageTitle("MurderTab", pages.MurderTab)
+	createPageTitle("TrollTab", pages.TrollTab)
+	createPageTitle("CrosshairTab", pages.CrosshairTab)
+	createPageTitle("Themes", pages.Themes)
+	createPageTitle("Backgrounds", pages.Backgrounds)
+
+	local navButtons = {}
+
+	local function createNavButton(nameKey, targetPage, order)
+		local btn = Instance.new("TextButton")
+		btn.Name = "Nav_" .. nameKey
+		btn.Size = UDim2.new(1, 0, 0, 38)
+		btn.BackgroundColor3 = Color3.fromRGB(18, 22, 32)
+		btn.BackgroundTransparency = 0.5
+		btn.Text = "   " .. L(nameKey)
+		btn.TextColor3 = Color3.fromRGB(180, 185, 210)
+		btn.TextSize = 13
+		btn.Font = Enum.Font.GothamMedium
+		btn.TextXAlignment = Enum.TextXAlignment.Left
+		btn.LayoutOrder = order
+		btn.Parent = sidebar
+		
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 10)
+		corner.Parent = btn
+		
+		btn.MouseEnter:Connect(function()
+			TweenService:Create(btn, TweenInfo.new(0.2), { BackgroundColor3 = Color3.fromRGB(45, 55, 85), BackgroundTransparency = 0.2, TextColor3 = Color3.fromRGB(255, 255, 255) }):Play()
+		end)
+		
+		btn.MouseLeave:Connect(function()
+			TweenService:Create(btn, TweenInfo.new(0.2), { BackgroundColor3 = Color3.fromRGB(18, 22, 32), BackgroundTransparency = 0.5, TextColor3 = Color3.fromRGB(180, 185, 210) }):Play()
+		end)
+		
+		btn.MouseButton1Click:Connect(function()
+			playKeyboardSound()
+			for _, p in pairs(pages) do p.Visible = false end
+			targetPage.Visible = true
+		end)
+		
+		navButtons[nameKey] = btn
+		return btn
+	end
+
+	createNavButton("Home", pages.Home, 1)
+	createNavButton("ESP", pages.ESP, 2)
+	createNavButton("AutoFarm", pages.AutoFarm, 3)
+	createNavButton("SheriffTab", pages.SheriffTab, 4)
+	createNavButton("MurderTab", pages.MurderTab, 5)
+	createNavButton("TrollTab", pages.TrollTab, 6)
+	createNavButton("CrosshairTab", pages.CrosshairTab, 7)
+	createNavButton("Themes", pages.Themes, 8)
+	createNavButton("Backgrounds", pages.Backgrounds, 9)
+
+	local profileCard = Instance.new("Frame")
+	profileCard.Size = UDim2.new(1, 0, 0, 110)
+	profileCard.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	profileCard.BorderSizePixel = 0
+	profileCard.LayoutOrder = 2
+	profileCard.Parent = pages.Home
+
+	local profileCorner = Instance.new("UICorner")
+	profileCorner.CornerRadius = UDim.new(0, 14)
+	profileCorner.Parent = profileCard
+
+	local profileStroke = Instance.new("UIStroke")
+	profileStroke.Color = Color3.fromRGB(50, 60, 90)
+	profileStroke.Thickness = 1.2
+	profileStroke.Transparency = 0.5
+	profileStroke.Parent = profileCard
+
+	local avatarImg = Instance.new("ImageLabel")
+	avatarImg.Size = UDim2.new(0, 72, 0, 72)
+	avatarImg.Position = UDim2.new(0, 16, 0.5, -36)
+	avatarImg.BackgroundColor3 = Color3.fromRGB(30, 35, 50)
+	avatarImg.BorderSizePixel = 0
+	avatarImg.Image = "rbxassetid://0"
+	avatarImg.Parent = profileCard
+
+	local avatarCorner = Instance.new("UICorner")
+	avatarCorner.CornerRadius = UDim.new(1, 0)
+	avatarCorner.Parent = avatarImg
+
+	task.spawn(function()
+		local success, content = pcall(function()
+			return Players:GetUserThumbnailAsync(localPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+		end)
+		if success then avatarImg.Image = content end
+	end)
+
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size = UDim2.new(1, -110, 0, 28)
+	nameLabel.Position = UDim2.new(0, 102, 0, 16)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.TextSize = 16
+	nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nameLabel.Text = L("User") .. localPlayer.Name
+	nameLabel.Parent = profileCard
+
+	local pseudoLabel = Instance.new("TextLabel")
+	pseudoLabel.Size = UDim2.new(1, -110, 0, 24)
+	pseudoLabel.Position = UDim2.new(0, 102, 0, 44)
+	pseudoLabel.BackgroundTransparency = 1
+	pseudoLabel.Font = Enum.Font.GothamMedium
+	pseudoLabel.TextSize = 13
+	pseudoLabel.TextColor3 = Color3.fromRGB(180, 185, 210)
+	pseudoLabel.TextXAlignment = Enum.TextXAlignment.Left
+	pseudoLabel.Text = L("Pseudo") .. localPlayer.DisplayName
+	pseudoLabel.Parent = profileCard
+
+	local statsLabel = Instance.new("TextLabel")
+	statsLabel.Size = UDim2.new(1, -110, 0, 24)
+	statsLabel.Position = UDim2.new(0, 102, 0, 70)
+	statsLabel.BackgroundTransparency = 1
+	statsLabel.Font = Enum.Font.GothamSemibold
+	statsLabel.TextSize, statsLabel.TextColor3 = 13, Color3.fromRGB(90, 240, 140)
+	statsLabel.TextXAlignment = Enum.TextXAlignment.Left
+	statsLabel.Text = "FPS : 60 | Ping : 0 ms"
+	statsLabel.Parent = profileCard
+
+	local fpsCounter = 60
+	local lastTick = tick()
+	RunService.RenderStepped:Connect(function()
+		local currentTick = tick()
+		if currentTick - lastTick > 0 then fpsCounter = math.floor(1 / (currentTick - lastTick)) end
+		lastTick = currentTick
+		local pingVal = 0
+		pcall(function() pingVal = math.floor(localPlayer:GetNetworkPing() * 1000) end)
+		statsLabel.Text = string.format("FPS : %d | Ping : %d ms", fpsCounter, pingVal)
+	end)
+
+	local langCard = Instance.new("Frame")
+	langCard.Size = UDim2.new(1, 0, 0, 75)
+	langCard.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	langCard.BorderSizePixel = 0
+	langCard.LayoutOrder = 3
+	langCard.Parent = pages.Home
+
+	local langCardCorner = Instance.new("UICorner")
+	langCardCorner.CornerRadius = UDim.new(0, 14)
+	langCardCorner.Parent = langCard
+
+	local langCardStroke = Instance.new("UIStroke")
+	langCardStroke.Color = Color3.fromRGB(50, 60, 90)
+	langCardStroke.Thickness = 1.2
+	langCardStroke.Transparency = 0.5
+	langCardStroke.Parent = langCard
+
+	local langToggleBtn = Instance.new("TextButton")
+	langToggleBtn.Size = UDim2.new(1, -24, 0, 45)
+	langToggleBtn.Position = UDim2.new(0, 12, 0, 15)
+	langToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 36, 52)
+	langToggleBtn.Text = L("LangToggle")
+	langToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	langToggleBtn.TextSize = 14
+	langToggleBtn.Font = Enum.Font.GothamBold
+	langToggleBtn.Parent = langCard
+
+	local langCorner = Instance.new("UICorner")
+	langCorner.CornerRadius = UDim.new(0, 10)
+	langCorner.Parent = langToggleBtn
+
+	local function updateInterfaceLanguage()
+		brand.Text = L("Brand")
+		nameLabel.Text = L("User") .. localPlayer.Name
+		pseudoLabel.Text = L("Pseudo") .. localPlayer.DisplayName
+		langToggleBtn.Text = L("LangToggle")
+		
+		for name, page in pairs(pages) do
+			local titleLabel = page:FindFirstChild("Title_" .. name)
+			if titleLabel then titleLabel.Text = L(name) end
+		end
+		
+		for key, btn in pairs(navButtons) do btn.Text = "   " .. L(key) end
+	end
+
+	langToggleBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		currentLanguage = (currentLanguage == "FR") and "EN" or "FR"
+		savedSettings.Language = currentLanguage
+		saveData(SAVE_FILE_NAME, savedSettings)
+		updateInterfaceLanguage()
+	end)
+
+	local chanceCard = Instance.new("Frame")
+	chanceCard.Size = UDim2.new(1, 0, 0, 110)
+	chanceCard.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	chanceCard.BorderSizePixel = 0
+	chanceCard.LayoutOrder = 4
+	chanceCard.Parent = pages.Home
+
+	local chanceCorner = Instance.new("UICorner")
+	chanceCorner.CornerRadius = UDim.new(0, 14)
+	chanceCorner.Parent = chanceCard
+
+	local chanceStroke = Instance.new("UIStroke")
+	chanceStroke.Color = Color3.fromRGB(50, 60, 90)
+	chanceStroke.Thickness = 1.2
+	chanceStroke.Transparency = 0.5
+	chanceStroke.Parent = chanceCard
+
+	local chanceTitle = Instance.new("TextLabel")
+	chanceTitle.Size = UDim2.new(1, -20, 0, 25)
+	chanceTitle.Position = UDim2.new(0, 12, 0, 10)
+	chanceTitle.BackgroundTransparency = 1
+	chanceTitle.Font = Enum.Font.GothamBold
+	chanceTitle.TextSize = 14
+	chanceTitle.TextColor3 = Color3.fromRGB(255, 120, 120)
+	chanceTitle.TextXAlignment = Enum.TextXAlignment.Left
+	chanceTitle.Text = L("MurderChance")
+	chanceTitle.Parent = chanceCard
+
+	local chanceValueLabel = Instance.new("TextLabel")
+	chanceValueLabel.Size = UDim2.new(1, -20, 0, 30)
+	chanceValueLabel.Position = UDim2.new(0, 12, 0, 35)
+	chanceValueLabel.BackgroundTransparency = 1
+	chanceValueLabel.Font = Enum.Font.GothamBold
+	chanceValueLabel.TextSize = 16
+	chanceValueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	chanceValueLabel.TextXAlignment = Enum.TextXAlignment.Left
+	chanceValueLabel.Text = L("StatusDisabled")
+	chanceValueLabel.Parent = chanceCard
+
+	local chanceToggleBtn = Instance.new("TextButton")
+	chanceToggleBtn.Size = UDim2.new(0, 160, 0, 32)
+	chanceToggleBtn.Position = UDim2.new(0, 12, 0, 70)
+	chanceToggleBtn.BackgroundColor3 = Color3.fromRGB(35, 42, 60)
+	chanceToggleBtn.Text = L("Enable")
+	chanceToggleBtn.TextColor3 = Color3.fromRGB(90, 255, 90)
+	chanceToggleBtn.TextSize, chanceToggleBtn.Font = 13, Enum.Font.GothamBold
+	chanceToggleBtn.Parent = chanceCard
+
+	local chanceToggleCorner = Instance.new("UICorner")
+	chanceToggleCorner.CornerRadius = UDim.new(0, 8)
+	chanceToggleCorner.Parent = chanceToggleBtn
+
+	local showMurderChance = savedSettings.ShowMurderChance or false
+	if showMurderChance then
+		chanceToggleBtn.Text = L("DisableRefuse")
+		chanceToggleBtn.TextColor3 = Color3.fromRGB(255, 90, 90)
+	end
+
+	chanceToggleBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		showMurderChance = not showMurderChance
+		savedSettings.ShowMurderChance = showMurderChance
+		saveData(SAVE_FILE_NAME, savedSettings)
+		if showMurderChance then
+			chanceToggleBtn.Text = L("DisableRefuse")
+			chanceToggleBtn.TextColor3 = Color3.fromRGB(255, 90, 90)
+		else
+			chanceToggleBtn.Text = L("Enable")
+			chanceToggleBtn.TextColor3 = Color3.fromRGB(90, 255, 90)
+			chanceValueLabel.Text = L("StatusDisabled")
+		end
+	end)
+
+	task.spawn(function()
+		while true do
+			if showMurderChance then
+				pcall(function()
+					local playersList = Players:GetPlayers()
+					local totalPlayers = #playersList
+					if totalPlayers <= 1 then
+						chanceValueLabel.Text = L("AloneServer")
+					else
+						local chance = (1 / totalPlayers) * 100
+						chanceValueLabel.Text = string.format(L("ChanceRound"), chance, totalPlayers)
+					end
+				end)
+			end
+			task.wait(3)
+		end
+	end)
+
+	local espEnabled = savedSettings.EspEnabled or false
+	local espToggleBtn = Instance.new("TextButton")
+	espToggleBtn.Size = UDim2.new(1, 0, 0, 50)
+	espToggleBtn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	espToggleBtn.Text = L("EspMm2") .. (espEnabled and "ON" or "OFF")
+	espToggleBtn.TextColor3 = espEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+	espToggleBtn.TextSize = 14
+	espToggleBtn.Font = Enum.Font.GothamSemibold
+	espToggleBtn.TextXAlignment = Enum.TextXAlignment.Left
+	espToggleBtn.LayoutOrder = 2
+	espToggleBtn.Parent = pages.ESP
+
+	local espCorner = Instance.new("UICorner")
+	espCorner.CornerRadius = UDim.new(0, 14)
+	espCorner.Parent = espToggleBtn
+
+	local espStroke = Instance.new("UIStroke")
+	espStroke.Color = Color3.fromRGB(50, 60, 90)
+	espStroke.Thickness = 1.2
+	espStroke.Transparency = 0.5
+	espStroke.Parent = espToggleBtn
+
+	local espData = {}
+
+	local function removeESP(plr)
+		if espData[plr] then
+			if espData[plr].Highlight and espData[plr].Highlight.Parent then espData[plr].Highlight:Destroy() end
+			if espData[plr].Billboard and espData[plr].Billboard.Parent then espData[plr].Billboard:Destroy() end
+			espData[plr] = nil
+		end
+	end
+
+	local function updateESPForPlayer(plr)
+		if not espEnabled then removeESP(plr) return end
+		if plr == localPlayer then return end
+		local char = plr.Character
+		
+		if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChildOfClass("Humanoid") or char:FindFirstChildOfClass("Humanoid").Health <= 0 then
+			removeESP(plr)
+			return
+		end
+		
+		local rootPart = char.HumanoidRootPart
+		local head = char:FindFirstChild("Head") or rootPart
+		
+		local role = "Innocent"
+		local function checkContainer(container)
+			if not container then return end
+			for _, item in ipairs(container:GetChildren()) do
+				if item:IsA("Tool") then
+					local name = item.Name:lower()
+					if name == "knife" or name:find("couteau") then role = "Murderer"
+					elseif name == "gun" or name == "revolver" or name:find("pistolet") then role = "Sheriff" end
+				end
+			end
+		end
+		
+		checkContainer(plr:FindFirstChild("Backpack"))
+		checkContainer(char)
+		
+		local data = espData[plr]
+		if not data or not data.Highlight or not data.Highlight.Parent or not data.Billboard or not data.Billboard.Parent or data.Character ~= char then
+			removeESP(plr)
+			data = {}
+			data.Character = char
+			
+			local highlight = Instance.new("Highlight")
+			highlight.Adornee = char
+			highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+			highlight.Parent = espFolder
+			data.Highlight = highlight
+			
+			local billboard = Instance.new("BillboardGui")
+			billboard.Adornee = head
+			billboard.Size = UDim2.new(0, 220, 0, 60)
+			billboard.StudsOffset = Vector3.new(0, 2.8, 0)
+			billboard.AlwaysOnTop = true
+			billboard.Parent = espFolder
+			
+			local textLabel = Instance.new("TextLabel")
+			textLabel.Size = UDim2.new(1, 0, 1, 0)
+			textLabel.BackgroundTransparency = 1
+			textLabel.TextSize = 13
+			textLabel.Font = Enum.Font.GothamBold
+			textLabel.TextStrokeTransparency = 0.2
+			textLabel.TextStrokeColor3 = Color3.fromRGB(10, 10, 15)
+			textLabel.Parent = billboard
+			
+			data.Billboard = billboard
+			data.TextLabel = textLabel
+			espData[plr] = data
+		else
+			data.Highlight.Adornee = char
+			data.Billboard.Adornee = head
+		end
+		
+		local distance = 0
+		if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+			distance = math.floor((localPlayer.Character.HumanoidRootPart.Position - rootPart.Position).Magnitude)
+		end
+		
+		local color = Color3.fromRGB(90, 255, 140)
+		local roleName = "Innocent"
+		if role == "Murderer" then color = Color3.fromRGB(255, 60, 60); roleName = "MURDERER"
+		elseif role == "Sheriff" then color = Color3.fromRGB(60, 160, 255); roleName = "SHERIFF" end
+		
+		data.Highlight.FillColor = color
+		data.Highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+		data.Highlight.FillTransparency = (role == "Innocent") and 0.65 or 0.25
+		data.TextLabel.Text = string.format("[%s] %s\nDistance : %dm", roleName, plr.DisplayName, distance)
+		data.TextLabel.TextColor3 = color
+	end
+
+	espToggleBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		espEnabled = not espEnabled
+		savedSettings.EspEnabled = espEnabled
+		saveData(SAVE_FILE_NAME, savedSettings)
+		espToggleBtn.Text = L("EspMm2") .. (espEnabled and "ON" or "OFF")
+		espToggleBtn.TextColor3 = espEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+		if not espEnabled then for _, plr in ipairs(Players:GetPlayers()) do removeESP(plr) end end
+	end)
+
+	RunService.RenderStepped:Connect(function()
+		if espEnabled then
+			for _, plr in ipairs(Players:GetPlayers()) do pcall(function() updateESPForPlayer(plr) end) end
+		end
+	end)
+
+	Players.PlayerRemoving:Connect(function(plr) removeESP(plr) end)
+
+	local noClipEnabled = savedSettings.NoClipEnabled or false
+	local noclipBtn = Instance.new("TextButton")
+	noclipBtn.Size = UDim2.new(1, 0, 0, 50)
+	noclipBtn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	noclipBtn.Text = L("NoClip") .. (noClipEnabled and "ON" or "OFF")
+	noclipBtn.TextColor3 = noClipEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+	noclipBtn.TextSize = 14
+	noclipBtn.Font = Enum.Font.GothamSemibold
+	noclipBtn.TextXAlignment = Enum.TextXAlignment.Left
+	noclipBtn.LayoutOrder = 3
+	noclipBtn.Parent = pages.ESP
+
+	local noclipCorner = Instance.new("UICorner")
+	noclipCorner.CornerRadius = UDim.new(0, 14)
+	noclipCorner.Parent = noclipBtn
+
+	local noclipStroke = Instance.new("UIStroke")
+	noclipStroke.Color = Color3.fromRGB(50, 60, 90)
+	noclipStroke.Thickness = 1.2
+	noclipStroke.Transparency = 0.5
+	noclipStroke.Parent = noclipBtn
+
+	noclipBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		noClipEnabled = not noClipEnabled
+		savedSettings.NoClipEnabled = noClipEnabled
+		saveData(SAVE_FILE_NAME, savedSettings)
+		noclipBtn.Text = L("NoClip") .. (noClipEnabled and "ON" or "OFF")
+		noclipBtn.TextColor3 = noClipEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+	end)
+
+	RunService.Stepped:Connect(function()
+		if noClipEnabled and localPlayer.Character then
+			for _, part in ipairs(localPlayer.Character:GetDescendants()) do
+				if part:IsA("BasePart") then part.CanCollide = false end
+			end
+		end
+	end)
+
+	local infiniteJumpEnabled = savedSettings.InfiniteJumpEnabled or false
+	local infiniteJumpBtn = Instance.new("TextButton")
+	infiniteJumpBtn.Size = UDim2.new(1, 0, 0, 50)
+	infiniteJumpBtn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	infiniteJumpBtn.Text = L("InfiniteJump") .. (infiniteJumpEnabled and "ON" or "OFF")
+	infiniteJumpBtn.TextColor3 = infiniteJumpEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+	infiniteJumpBtn.TextSize = 14
+	infiniteJumpBtn.Font = Enum.Font.GothamSemibold
+	infiniteJumpBtn.TextXAlignment = Enum.TextXAlignment.Left
+	infiniteJumpBtn.LayoutOrder = 4
+	infiniteJumpBtn.Parent = pages.ESP
+
+	local infJumpCorner = Instance.new("UICorner")
+	infJumpCorner.CornerRadius = UDim.new(0, 14)
+	infJumpCorner.Parent = infiniteJumpBtn
+
+	local infJumpStroke = Instance.new("UIStroke")
+	infJumpStroke.Color = Color3.fromRGB(50, 60, 90)
+	infJumpStroke.Thickness = 1.2
+	infJumpStroke.Transparency = 0.5
+	infJumpStroke.Parent = infiniteJumpBtn
+
+	infiniteJumpBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		infiniteJumpEnabled = not infiniteJumpEnabled
+		savedSettings.InfiniteJumpEnabled = infiniteJumpEnabled
+		saveData(SAVE_FILE_NAME, savedSettings)
+		infiniteJumpBtn.Text = L("InfiniteJump") .. (infiniteJumpEnabled and "ON" or "OFF")
+		infiniteJumpBtn.TextColor3 = infiniteJumpEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+	end)
+
+	UserInputService.JumpRequest:Connect(function()
+		if infiniteJumpEnabled then
+			local char = localPlayer.Character
+			if char then
+				local humanoid = char:FindFirstChildOfClass("Humanoid")
+				if humanoid then
+					humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+				end
+			end
+		end
+	end)
+
+	local autoFarmEnabled = savedSettings.AutoFarmEnabled or false
+	local autoFarmSpeed = savedSettings.AutoFarmSpeed or 70 
+	local coinTransitSpeed = savedSettings.CoinTransitSpeed or 50
+
+	local autofarmBtn = Instance.new("TextButton")
+	autofarmBtn.Size = UDim2.new(1, 0, 0, 50)
+	autofarmBtn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	autofarmBtn.Text = L("AutoFarmCoins") .. (autoFarmEnabled and "ON" or "OFF")
+	autofarmBtn.TextColor3 = autoFarmEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+	autofarmBtn.TextSize = 14
+	autofarmBtn.Font = Enum.Font.GothamSemibold
+	autofarmBtn.TextXAlignment = Enum.TextXAlignment.Left
+	autofarmBtn.LayoutOrder = 2
+	autofarmBtn.Parent = pages.AutoFarm
+
+	local autofarmCorner = Instance.new("UICorner")
+	autofarmCorner.CornerRadius = UDim.new(0, 14)
+	autofarmCorner.Parent = autofarmBtn
+
+	local autofarmStroke = Instance.new("UIStroke")
+	autofarmStroke.Color = Color3.fromRGB(50, 60, 90)
+	autofarmStroke.Thickness = 1.2
+	autofarmStroke.Transparency = 0.5
+	autofarmStroke.Parent = autofarmBtn
+
+	autofarmBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		autoFarmEnabled = not autoFarmEnabled
+		savedSettings.AutoFarmEnabled = autoFarmEnabled
+		
+		noClipEnabled = autoFarmEnabled
+		savedSettings.NoClipEnabled = noClipEnabled
+		noclipBtn.Text = L("NoClip") .. (noClipEnabled and "ON" or "OFF")
+		noclipBtn.TextColor3 = noClipEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+		
+		saveData(SAVE_FILE_NAME, savedSettings)
+		autofarmBtn.Text = L("AutoFarmCoins") .. (autoFarmEnabled and "ON" or "OFF")
+		autofarmBtn.TextColor3 = autoFarmEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+	end)
+
+	local speedCard = Instance.new("Frame")
+	speedCard.Size = UDim2.new(1, 0, 0, 75)
+	speedCard.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	speedCard.BorderSizePixel = 0
+	speedCard.LayoutOrder = 3
+	speedCard.Parent = pages.AutoFarm
+
+	local speedCardCorner = Instance.new("UICorner")
+	speedCardCorner.CornerRadius = UDim.new(0, 14)
+	speedCardCorner.Parent = speedCard
+
+	local speedCardStroke = Instance.new("UIStroke")
+	speedCardStroke.Color = Color3.fromRGB(50, 60, 90)
+	speedCardStroke.Thickness = 1.2
+	speedCardStroke.Transparency = 0.5
+	speedCardStroke.Parent = speedCard
+
+	local speedLabel = Instance.new("TextLabel")
+	speedLabel.Size = UDim2.new(1, -20, 0, 25)
+	speedLabel.Position = UDim2.new(0, 12, 0, 8)
+	speedLabel.BackgroundTransparency = 1
+	speedLabel.Font = Enum.Font.GothamBold
+	speedLabel.TextSize = 13
+	speedLabel.TextColor3 = Color3.fromRGB(200, 210, 240)
+	speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+	speedLabel.Text = L("SpeedAutoFarm") .. autoFarmSpeed
+	speedLabel.Parent = speedCard
+
+	local speedMinusBtn = Instance.new("TextButton")
+	speedMinusBtn.Size = UDim2.new(0, 38, 0, 32)
+	speedMinusBtn.Position = UDim2.new(0, 12, 0, 35)
+	speedMinusBtn.BackgroundColor3 = Color3.fromRGB(30, 36, 52)
+	speedMinusBtn.Text = "-"
+	speedMinusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	speedMinusBtn.TextSize = 16
+	speedMinusBtn.Font = Enum.Font.GothamBold
+	speedMinusBtn.Parent = speedCard
+
+	local minusCorner = Instance.new("UICorner")
+	minusCorner.CornerRadius = UDim.new(0, 8)
+	minusCorner.Parent = speedMinusBtn
+
+	local speedInputBox = Instance.new("TextBox")
+	speedInputBox.Size = UDim2.new(0, 65, 0, 32)
+	speedInputBox.Position = UDim2.new(0, 56, 0, 35)
+	speedInputBox.BackgroundColor3 = Color3.fromRGB(24, 28, 42)
+	speedInputBox.Text = tostring(autoFarmSpeed)
+	speedInputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	speedInputBox.TextSize = 14
+	speedInputBox.Font = Enum.Font.GothamBold
+	speedInputBox.ClearTextOnFocus = false
+	speedInputBox.Parent = speedCard
+
+	local speedInputCorner = Instance.new("UICorner")
+	speedInputCorner.CornerRadius = UDim.new(0, 8)
+	speedInputCorner.Parent = speedInputBox
+
+	local speedPlusBtn = Instance.new("TextButton")
+	speedPlusBtn.Size = UDim2.new(0, 38, 0, 32)
+	speedPlusBtn.Position = UDim2.new(0, 127, 0, 35)
+	speedPlusBtn.BackgroundColor3 = Color3.fromRGB(30, 36, 52)
+	speedPlusBtn.Text = "+"
+	speedPlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	speedPlusBtn.TextSize = 16
+	speedPlusBtn.Font = Enum.Font.GothamBold
+	speedPlusBtn.Parent = speedCard
+
+	local plusCorner = Instance.new("UICorner")
+	plusCorner.CornerRadius = UDim.new(0, 8)
+	plusCorner.Parent = speedPlusBtn
+
+	local speedInfoText = Instance.new("TextLabel")
+	speedInfoText.Size = UDim2.new(1, -175, 0, 32)
+	speedInfoText.Position = UDim2.new(0, 172, 0, 35)
+	speedInfoText.BackgroundTransparency = 1
+	speedInfoText.Font = Enum.Font.GothamMedium
+	speedInfoText.TextSize = 12
+	speedInfoText.TextColor3 = Color3.fromRGB(150, 160, 185)
+	speedInfoText.TextXAlignment = Enum.TextXAlignment.Left
+	speedInfoText.Text = L("SpeedAutoFarmHint")
+	speedInfoText.Parent = speedCard
+
+	speedMinusBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		autoFarmSpeed = math.clamp(autoFarmSpeed - 25, 10, 500)
+		speedInputBox.Text = tostring(autoFarmSpeed)
+		savedSettings.AutoFarmSpeed = autoFarmSpeed
+		saveData(SAVE_FILE_NAME, savedSettings)
+		speedLabel.Text = L("SpeedAutoFarm") .. autoFarmSpeed
+	end)
+
+	speedPlusBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		autoFarmSpeed = math.clamp(autoFarmSpeed + 25, 10, 500)
+		speedInputBox.Text = tostring(autoFarmSpeed)
+		savedSettings.AutoFarmSpeed = autoFarmSpeed
+		saveData(SAVE_FILE_NAME, savedSettings)
+		speedLabel.Text = L("SpeedAutoFarm") .. autoFarmSpeed
+	end)
+
+	speedInputBox.FocusLost:Connect(function()
+		local num = tonumber(speedInputBox.Text)
+		if num then
+			autoFarmSpeed = math.clamp(math.floor(num), 10, 500)
+			speedInputBox.Text = tostring(autoFarmSpeed)
+			savedSettings.AutoFarmSpeed = autoFarmSpeed
+			saveData(SAVE_FILE_NAME, savedSettings)
+			speedLabel.Text = L("SpeedAutoFarm") .. autoFarmSpeed
+		else
+			speedInputBox.Text = tostring(autoFarmSpeed)
+		end
+	end)
+
+	local transitCard = Instance.new("Frame")
+	transitCard.Size = UDim2.new(1, 0, 0, 75)
+	transitCard.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	transitCard.BorderSizePixel = 0
+	transitCard.LayoutOrder = 4
+	transitCard.Parent = pages.AutoFarm
+
+	local transitCardCorner = Instance.new("UICorner")
+	transitCardCorner.CornerRadius = UDim.new(0, 14)
+	transitCardCorner.Parent = transitCard
+
+	local transitCardStroke = Instance.new("UIStroke")
+	transitCardStroke.Color = Color3.fromRGB(50, 60, 90)
+	transitCardStroke.Thickness = 1.2
+	transitCardStroke.Transparency = 0.5
+	transitCardStroke.Parent = transitCard
+
+	local transitLabel = Instance.new("TextLabel")
+	transitLabel.Size = UDim2.new(1, -20, 0, 25)
+	transitLabel.Position = UDim2.new(0, 12, 0, 8)
+	transitLabel.BackgroundTransparency = 1
+	transitLabel.Font = Enum.Font.GothamBold
+	transitLabel.TextSize = 13
+	transitLabel.TextColor3 = Color3.fromRGB(200, 210, 240)
+	transitLabel.TextXAlignment = Enum.TextXAlignment.Left
+	transitLabel.Text = L("CoinTransitSpeed") .. coinTransitSpeed
+	transitLabel.Parent = transitCard
+
+	local tMinusBtn = Instance.new("TextButton")
+	tMinusBtn.Size = UDim2.new(0, 38, 0, 32)
+	tMinusBtn.Position = UDim2.new(0, 12, 0, 35)
+	tMinusBtn.BackgroundColor3 = Color3.fromRGB(30, 36, 52)
+	tMinusBtn.Text = "-"
+	tMinusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	tMinusBtn.TextSize = 16
+	tMinusBtn.Font = Enum.Font.GothamBold
+	tMinusBtn.Parent = transitCard
+
+	local tMinusCorner = Instance.new("UICorner")
+	tMinusCorner.CornerRadius = UDim.new(0, 8)
+	tMinusCorner.Parent = tMinusBtn
+
+	local transitInputBox = Instance.new("TextBox")
+	transitInputBox.Size = UDim2.new(0, 65, 0, 32)
+	transitInputBox.Position = UDim2.new(0, 56, 0, 35)
+	transitInputBox.BackgroundColor3 = Color3.fromRGB(24, 28, 42)
+	transitInputBox.Text = tostring(coinTransitSpeed)
+	transitInputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	transitInputBox.TextSize = 14
+	transitInputBox.Font = Enum.Font.GothamBold
+	transitInputBox.ClearTextOnFocus = false
+	transitInputBox.Parent = transitCard
+
+	local transitInputCorner = Instance.new("UICorner")
+	transitInputCorner.CornerRadius = UDim.new(0, 8)
+	transitInputCorner.Parent = transitInputBox
+
+	local tPlusBtn = Instance.new("TextButton")
+	tPlusBtn.Size = UDim2.new(0, 38, 0, 32)
+	tPlusBtn.Position = UDim2.new(0, 127, 0, 35)
+	tPlusBtn.BackgroundColor3 = Color3.fromRGB(30, 36, 52)
+	tPlusBtn.Text = "+"
+	tPlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	tPlusBtn.TextSize = 16
+	tPlusBtn.Font = Enum.Font.GothamBold
+	tPlusBtn.Parent = transitCard
+
+	local tPlusCorner = Instance.new("UICorner")
+	tPlusCorner.CornerRadius = UDim.new(0, 8)
+	tPlusCorner.Parent = tPlusBtn
+
+	local transitInfoText = Instance.new("TextLabel")
+	transitInfoText.Size = UDim2.new(1, -175, 0, 32)
+	transitInfoText.Position = UDim2.new(0, 172, 0, 35)
+	transitInfoText.BackgroundTransparency = 1
+	transitInfoText.Font = Enum.Font.GothamMedium
+	transitInfoText.TextSize = 12
+	transitInfoText.TextColor3 = Color3.fromRGB(150, 160, 185)
+	transitInfoText.TextXAlignment = Enum.TextXAlignment.Left
+	transitInfoText.Text = L("TransitHint")
+	transitInfoText.Parent = transitCard
+
+	tMinusBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		coinTransitSpeed = math.clamp(coinTransitSpeed - 10, 10, 500)
+		transitInputBox.Text = tostring(coinTransitSpeed)
+		savedSettings.CoinTransitSpeed = coinTransitSpeed
+		saveData(SAVE_FILE_NAME, savedSettings)
+		transitLabel.Text = L("CoinTransitSpeed") .. coinTransitSpeed
+	end)
+
+	tPlusBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		coinTransitSpeed = math.clamp(coinTransitSpeed + 10, 10, 500)
+		transitInputBox.Text = tostring(coinTransitSpeed)
+		savedSettings.CoinTransitSpeed = coinTransitSpeed
+		saveData(SAVE_FILE_NAME, savedSettings)
+		transitLabel.Text = L("CoinTransitSpeed") .. coinTransitSpeed
+	end)
+
+	transitInputBox.FocusLost:Connect(function()
+		local num = tonumber(transitInputBox.Text)
+		if num then
+			coinTransitSpeed = math.clamp(math.floor(num), 10, 500)
+			transitInputBox.Text = tostring(coinTransitSpeed)
+			savedSettings.CoinTransitSpeed = coinTransitSpeed
+			saveData(SAVE_FILE_NAME, savedSettings)
+			transitLabel.Text = L("CoinTransitSpeed") .. coinTransitSpeed
+		else
+			transitInputBox.Text = tostring(coinTransitSpeed)
+		end
+	end)
+
+	local function countTotalCoinsOnMap()
+		local count = 0
+		for _, obj in ipairs(Workspace:GetDescendants()) do
+			if obj:IsA("BasePart") then
+				local nameLower = obj.Name:lower()
+				if nameLower == "coin" or nameLower == "coins" or nameLower:find("coin") or nameLower:find("piece") or nameLower:find("pièce") then
+					count = count + 1
+				end
+			end
+		end
+		return count
+	end
+
+	local function findNearestValidCoin()
+		local nearest = nil
+		local shortestDist = math.huge
+		local char = localPlayer.Character
+		if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+		local rootPos = char.HumanoidRootPart.Position
+
+		for _, obj in ipairs(Workspace:GetDescendants()) do
+			if obj:IsA("BasePart") and obj.Parent then
+				local nameLower = obj.Name:lower()
+				if nameLower == "coin" or nameLower == "coins" or nameLower:find("coin") or nameLower:find("piece") or nameLower:find("pièce") then
+					if obj.Transparency < 1 and obj.Size.Magnitude > 0 then
+						local dist = (obj.Position - rootPos).Magnitude
+						if dist < shortestDist then
+							shortestDist = dist
+							nearest = obj
+						end
+					end
+				end
+			end
+		end
+		return nearest
+	end
+
+	task.spawn(function()
+		local waitingForNewRound = false
+
+		while true do
+			if autoFarmEnabled then
+				local char = localPlayer.Character
+				if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") then
+					local rootPart = char.HumanoidRootPart
+					local humanoid = char:FindFirstChildOfClass("Humanoid")
+					local totalCoins = countTotalCoinsOnMap()
+					
+					if totalCoins == 0 then
+						if not waitingForNewRound then
+							waitingForNewRound = true
+							autofarmBtn.Text = L("WaitMap")
+							autofarmBtn.TextColor3 = Color3.fromRGB(255, 180, 50)
+						end
+						humanoid.PlatformStand = false
+						task.wait(0.5)
+					else
+						if waitingForNewRound then
+							waitingForNewRound = false
+							autofarmBtn.Text = L("AutoFarmCoins") .. "ON"
+							autofarmBtn.TextColor3 = Color3.fromRGB(90, 255, 90)
+						end
+						
+						local coin = findNearestValidCoin()
+						if coin and coin.Parent and coin.Transparency < 1 then
+							humanoid.PlatformStand = true
+							
+							local startTime = tick()
+							while autoFarmEnabled and coin and coin.Parent and coin.Transparency < 1 do
+								local targetPos = coin.Position + Vector3.new(0, 0.5, 0)
+								local distance = (rootPart.Position - targetPos).Magnitude
+								
+								if distance < 1.5 then 
+									break 
+								end
+								
+								if tick() - startTime > 1.5 then
+									rootPart.CFrame = rootPart.CFrame:Lerp(CFrame.new(targetPos), 0.3)
+									break
+								end
+
+								local dt = RunService.RenderStepped:Wait()
+								local alpha = math.clamp((autoFarmSpeed * 0.7 * dt) / math.max(distance, 0.1), 0, 1)
+								local nextPos = rootPart.Position:Lerp(targetPos, alpha)
+								
+								rootPart.CFrame = CFrame.new(nextPos)
+								rootPart.AssemblyLinearVelocity = Vector3.zero
+								rootPart.AssemblyAngularVelocity = Vector3.zero
+							end
+							
+							if coin and coin.Parent then 
+								rootPart.CFrame = CFrame.new(rootPart.Position:Lerp(coin.Position + Vector3.new(0, 0.5, 0), 0.5))
+							end
+							
+							rootPart.AssemblyLinearVelocity = Vector3.zero
+							rootPart.AssemblyAngularVelocity = Vector3.zero
+							task.wait(0.05)
+							humanoid.PlatformStand = false
+						else
+							humanoid.PlatformStand = false
+							task.wait(0.1)
+						end
+					end
+				else
+					task.wait(0.5)
+				end
+			else
+				task.wait(0.2)
+			end
+		end
+	end)
+
+	local function findPlayerByRole(targetRole)
+		for _, plr in ipairs(Players:GetPlayers()) do
+			if plr ~= localPlayer then
+				local char = plr.Character
+				local function checkContainer(container)
+					if not container then return false end
+					for _, item in ipairs(container:GetChildren()) do
+						if item:IsA("Tool") then
+							local name = item.Name:lower()
+							if targetRole == "Murderer" and (name == "knife" or name:find("couteau")) then return true
+							elseif targetRole == "Sheriff" and (name == "gun" or name == "revolver" or name:find("pistolet")) then return true end
+						end
+					end
+					return false
+				end
+				if checkContainer(plr.Backpack) or (char and checkContainer(char)) then return plr end
+			end
+		end
+		return nil
+	end
+
+	local function findSheriffPlayer() return findPlayerByRole("Sheriff") end
+	local function findMurdererPlayer() return findPlayerByRole("Murderer") end
+
+	local targetMurderTornado = false
+	local targetSheriffTornado = false
+	local tornadoSpeed = 3500 
+
+	local tornadoMurderBtn = Instance.new("TextButton")
+	tornadoMurderBtn.Size = UDim2.new(1, 0, 0, 50)
+	tornadoMurderBtn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	tornadoMurderBtn.Text = L("TargetMurder") .. "OFF"
+	tornadoMurderBtn.TextColor3 = Color3.fromRGB(255, 90, 90)
+	tornadoMurderBtn.TextSize = 14
+	tornadoMurderBtn.Font = Enum.Font.GothamSemibold
+	tornadoMurderBtn.TextXAlignment = Enum.TextXAlignment.Left
+	tornadoMurderBtn.LayoutOrder = 5
+	tornadoMurderBtn.Parent = pages.AutoFarm
+
+	local tornadoMurderCorner = Instance.new("UICorner")
+	tornadoMurderCorner.CornerRadius = UDim.new(0, 14)
+	tornadoMurderCorner.Parent = tornadoMurderBtn
+
+	local tornadoMurderStroke = Instance.new("UIStroke")
+	tornadoMurderStroke.Color = Color3.fromRGB(50, 60, 90)
+	tornadoMurderStroke.Thickness = 1.2
+	tornadoMurderStroke.Transparency = 0.5
+	tornadoMurderStroke.Parent = tornadoMurderBtn
+
+	tornadoMurderBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		targetMurderTornado = not targetMurderTornado
+		if targetMurderTornado then
+			targetSheriffTornado = false
+			tornadoMurderBtn.Text = L("TargetMurder") .. "ON"
+			tornadoMurderBtn.TextColor3 = Color3.fromRGB(90, 255, 90)
+		else
+			tornadoMurderBtn.Text = L("TargetMurder") .. "OFF"
+			tornadoMurderBtn.TextColor3 = Color3.fromRGB(255, 90, 90)
+		end
+	end)
+
+	local tornadoSheriffBtn = Instance.new("TextButton")
+	tornadoSheriffBtn.Size = UDim2.new(1, 0, 0, 50)
+	tornadoSheriffBtn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	tornadoSheriffBtn.Text = L("TargetSheriff") .. "OFF"
+	tornadoSheriffBtn.TextColor3 = Color3.fromRGB(60, 160, 255)
+	tornadoSheriffBtn.TextSize = 14
+	tornadoSheriffBtn.Font = Enum.Font.GothamSemibold
+	tornadoSheriffBtn.TextXAlignment = Enum.TextXAlignment.Left
+	tornadoSheriffBtn.LayoutOrder = 6
+	tornadoSheriffBtn.Parent = pages.AutoFarm
+
+	local tornadoSheriffCorner = Instance.new("UICorner")
+	tornadoSheriffCorner.CornerRadius = UDim.new(0, 14)
+	tornadoSheriffCorner.Parent = tornadoSheriffBtn
+
+	local tornadoSheriffStroke = Instance.new("UIStroke")
+	tornadoSheriffStroke.Color = Color3.fromRGB(50, 60, 90)
+	tornadoSheriffStroke.Thickness = 1.2
+	tornadoSheriffStroke.Transparency = 0.5
+	tornadoSheriffStroke.Parent = tornadoSheriffBtn
+
+	tornadoSheriffBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		targetSheriffTornado = not targetSheriffTornado
+		if targetSheriffTornado then
+			targetMurderTornado = false
+			tornadoSheriffBtn.Text = L("TargetSheriff") .. "ON"
+			tornadoSheriffBtn.TextColor3 = Color3.fromRGB(90, 255, 90)
+		else
+			tornadoSheriffBtn.Text = L("TargetSheriff") .. "OFF"
+			tornadoSheriffBtn.TextColor3 = Color3.fromRGB(60, 160, 255)
+		end
+	end)
+
+	local tornadoSpeedCard = Instance.new("Frame")
+	tornadoSpeedCard.Size = UDim2.new(1, 0, 0, 75)
+	tornadoSpeedCard.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	tornadoSpeedCard.BorderSizePixel = 0
+	tornadoSpeedCard.LayoutOrder = 7
+	tornadoSpeedCard.Parent = pages.AutoFarm
+
+	local tornadoSpeedCardCorner = Instance.new("UICorner")
+	tornadoSpeedCardCorner.CornerRadius = UDim.new(0, 14)
+	tornadoSpeedCardCorner.Parent = tornadoSpeedCard
+
+	local tornadoSpeedCardStroke = Instance.new("UIStroke")
+	tornadoSpeedCardStroke.Color = Color3.fromRGB(50, 60, 90)
+	tornadoSpeedCardStroke.Thickness = 1.2
+	tornadoSpeedCardStroke.Transparency = 0.5
+	tornadoSpeedCardStroke.Parent = tornadoSpeedCard
+
+	local tornadoSpeedLabel = Instance.new("TextLabel")
+	tornadoSpeedLabel.Size = UDim2.new(1, -20, 0, 25)
+	tornadoSpeedLabel.Position = UDim2.new(0, 12, 0, 8)
+	tornadoSpeedLabel.BackgroundTransparency = 1
+	tornadoSpeedLabel.Font = Enum.Font.GothamBold
+	tornadoSpeedLabel.TextSize = 13
+	tornadoSpeedLabel.TextColor3 = Color3.fromRGB(200, 210, 240)
+	tornadoSpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
+	tornadoSpeedLabel.Text = L("TornadoSpeedLabel") .. tornadoSpeed
+	tornadoSpeedLabel.Parent = tornadoSpeedCard
+
+	local tSpeedMinusBtn = Instance.new("TextButton")
+	tSpeedMinusBtn.Size = UDim2.new(0, 45, 0, 32)
+	tSpeedMinusBtn.Position = UDim2.new(0, 12, 0, 35)
+	tSpeedMinusBtn.BackgroundColor3 = Color3.fromRGB(30, 36, 52)
+	tSpeedMinusBtn.Text = "-"
+	tSpeedMinusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	tSpeedMinusBtn.TextSize = 16
+	tSpeedMinusBtn.Font = Enum.Font.GothamBold
+	tSpeedMinusBtn.Parent = tornadoSpeedCard
+
+	local tMinusCorner2 = Instance.new("UICorner")
+	tMinusCorner2.CornerRadius = UDim.new(0, 8)
+	tMinusCorner2.Parent = tSpeedMinusBtn
+
+	local tSpeedPlusBtn = Instance.new("TextButton")
+	tSpeedPlusBtn.Size = UDim2.new(0, 45, 0, 32)
+	tSpeedPlusBtn.Position = UDim2.new(0, 65, 0, 35)
+	tSpeedPlusBtn.BackgroundColor3 = Color3.fromRGB(30, 36, 52)
+	tSpeedPlusBtn.Text = "+"
+	tSpeedPlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	tSpeedPlusBtn.TextSize = 16
+	tSpeedPlusBtn.Font = Enum.Font.GothamBold
+	tSpeedPlusBtn.Parent = tornadoSpeedCard
+
+	local tPlusCorner2 = Instance.new("UICorner")
+	tPlusCorner2.CornerRadius = UDim.new(0, 8)
+	tPlusCorner2.Parent = tSpeedPlusBtn
+
+	local tSpeedInfoText = Instance.new("TextLabel")
+	tSpeedInfoText.Size = UDim2.new(1, -125, 0, 32)
+	tSpeedInfoText.Position = UDim2.new(0, 120, 0, 35)
+	tSpeedInfoText.BackgroundTransparency = 1
+	tSpeedInfoText.Font = Enum.Font.GothamMedium
+	tSpeedInfoText.TextSize = 12
+	tSpeedInfoText.TextColor3 = Color3.fromRGB(150, 160, 185)
+	tSpeedInfoText.TextXAlignment = Enum.TextXAlignment.Left
+	tSpeedInfoText.Text = L("TornadoSpeedHint")
+	tSpeedInfoText.Parent = tornadoSpeedCard
+
+	tSpeedMinusBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		tornadoSpeed = math.clamp(tornadoSpeed - 500, 500, 10000)
+		tornadoSpeedLabel.Text = L("TornadoSpeedLabel") .. tornadoSpeed
+	end)
+
+	tSpeedPlusBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		tornadoSpeed = math.clamp(tornadoSpeed + 500, 500, 10000)
+		tornadoSpeedLabel.Text = L("TornadoSpeedLabel") .. tornadoSpeed
+	end)
+
+	local instantKillAllEnabled = savedSettings.InstantKillAllEnabled or false
+
+	local instantKillBtn = Instance.new("TextButton")
+	instantKillBtn.Size = UDim2.new(1, 0, 0, 50)
+	instantKillBtn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	instantKillBtn.Text = L("InstantKillAll") .. (instantKillAllEnabled and "ON" or "OFF")
+	instantKillBtn.TextColor3 = instantKillAllEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(255, 90, 90)
+	instantKillBtn.TextSize = 14
+	instantKillBtn.Font = Enum.Font.GothamSemibold
+	instantKillBtn.TextXAlignment = Enum.TextXAlignment.Left
+	instantKillBtn.LayoutOrder = 2
+	instantKillBtn.Parent = pages.MurderTab
+
+	local instantKillCorner = Instance.new("UICorner")
+	instantKillCorner.CornerRadius = UDim.new(0, 14)
+	instantKillCorner.Parent = instantKillBtn
+
+	local instantKillStroke = Instance.new("UIStroke")
+	instantKillStroke.Color = Color3.fromRGB(50, 60, 90)
+	instantKillStroke.Thickness = 1.2
+	instantKillStroke.Transparency = 0.5
+	instantKillStroke.Parent = instantKillBtn
+
+	instantKillBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		instantKillAllEnabled = not instantKillAllEnabled
+		savedSettings.InstantKillAllEnabled = instantKillAllEnabled
+		saveData(SAVE_FILE_NAME, savedSettings)
+		instantKillBtn.Text = L("InstantKillAll") .. (instantKillAllEnabled and "ON" or "OFF")
+		instantKillBtn.TextColor3 = instantKillAllEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(255, 90, 90)
+	end)
+
+	RunService.RenderStepped:Connect(function(dt)
+		local targetPlr = nil
+		if targetMurderTornado then targetPlr = findPlayerByRole("Murderer")
+		elseif targetSheriffTornado then targetPlr = findPlayerByRole("Sheriff") end
+		
+		if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") then
+			local tRoot = targetPlr.Character.HumanoidRootPart
+			local char = localPlayer.Character
+			local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+			if char and char:FindFirstChild("HumanoidRootPart") then
+				local myRoot = char.HumanoidRootPart
+				if humanoid then humanoid.PlatformStand = true end
+				
+				local spinAngle = tick() * tornadoSpeed
+				local fixedHeightPos = tRoot.Position + Vector3.new(0, 10, 0)
+				local focusCFrame = CFrame.new(fixedHeightPos) * CFrame.Angles(0, spinAngle, 0) * CFrame.new(0, 0, 2) * CFrame.Angles(0, spinAngle * 3, 0)
+				
+				myRoot.CFrame = focusCFrame
+				myRoot.AssemblyLinearVelocity = Vector3.zero
+				myRoot.AssemblyAngularVelocity = Vector3.zero
+			end
+		else
+			local char = localPlayer.Character
+			if char then
+				local humanoid = char:FindFirstChildOfClass("Humanoid")
+				if humanoid and humanoid.PlatformStand then
+					humanoid.PlatformStand = false
+				end
+			end
+		end
+
+		if instantKillAllEnabled then
+			pcall(function()
+				local char = localPlayer.Character
+				local tool = char and char:FindFirstChildOfClass("Tool")
+				local isHoldingKnife = false
+				if tool then
+					local name = tool.Name:lower()
+					if name == "knife" or name:find("couteau") then isHoldingKnife = true end
+				end
+				
+				for _, plr in ipairs(Players:GetPlayers()) do
+					if plr ~= localPlayer and plr.Character and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+						local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+						if hrp then
+							if isHoldingKnife then
+								hrp.Size = Vector3.new(1000, 1000, 1000)
+								hrp.CFrame = localPlayer.Character.HumanoidRootPart.CFrame
+								hrp.Transparency = 0.9
+								hrp.CanCollide = false
+								hrp.AssemblyLinearVelocity = Vector3.zero
+								hrp.AssemblyAngularVelocity = Vector3.zero
+							else
+								hrp.Size = Vector3.new(2, 2, 1)
+								hrp.Transparency = 1
+								hrp.CanCollide = true
+							end
+						end
+					end
+				end
+			end)
+		end
+	end)
+
+	local function createMapTpButton(textKey, targetPosOffset, order)
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(1, 0, 0, 50)
+		btn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+		btn.Text = L(textKey)
+		btn.TextColor3 = Color3.fromRGB(240, 240, 250)
+		btn.TextSize = 14
+		btn.Font = Enum.Font.GothamSemibold
+		btn.TextXAlignment = Enum.TextXAlignment.Left
+		btn.LayoutOrder = order
+		btn.Parent = pages.TrollTab
+		
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 14)
+		corner.Parent = btn
+		
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.fromRGB(50, 60, 90)
+		stroke.Thickness = 1.2
+		stroke.Transparency = 0.5
+		stroke.Parent = btn
+		
+		btn.MouseButton1Click:Connect(function()
+			playKeyboardSound()
+			local char = localPlayer.Character
+			if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+			local rootPart = char.HumanoidRootPart
+			local foundPart = nil
+			for _, obj in ipairs(Workspace:GetDescendants()) do
+				if obj:IsA("BasePart") and (obj.Name:lower():find("spawn") or obj.Name:lower():find("lobby") or obj.Name:lower():find("floor")) then
+					if obj.Position.Y > -10 and obj.Position.Y < 500 then foundPart = obj break end
+				end
+			end
+			if foundPart then rootPart.CFrame = foundPart.CFrame + targetPosOffset
+			else rootPart.CFrame = CFrame.new(0, 15, 0) + targetPosOffset end
+		end)
+		return btn
+	end
+
+	createMapTpButton("TpMapCenter", Vector3.new(0, 5, 0), 4)
+	createMapTpButton("TpRoof", Vector3.new(0, 45, 0), 5)
+
+	local tpSpawnBtn = Instance.new("TextButton")
+	tpSpawnBtn.Size = UDim2.new(1, 0, 0, 50)
+	tpSpawnBtn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	tpSpawnBtn.Text = L("TpSpawn")
+	tpSpawnBtn.TextColor3 = Color3.fromRGB(255, 220, 100)
+	tpSpawnBtn.TextSize = 14
+	tpSpawnBtn.Font = Enum.Font.GothamSemibold
+	tpSpawnBtn.TextXAlignment = Enum.TextXAlignment.Left
+	tpSpawnBtn.LayoutOrder = 6
+	tpSpawnBtn.Parent = pages.TrollTab
+
+	local tpSpawnCorner = Instance.new("UICorner")
+	tpSpawnCorner.CornerRadius = UDim.new(0, 14)
+	tpSpawnCorner.Parent = tpSpawnBtn
+
+	local tpSpawnStroke = Instance.new("UIStroke")
+	tpSpawnStroke.Color = Color3.fromRGB(50, 60, 90)
+	tpSpawnStroke.Thickness = 1.2
+	tpSpawnStroke.Transparency = 0.5
+	tpSpawnStroke.Parent = tpSpawnBtn
+
+	tpSpawnBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		local char = localPlayer.Character
+		if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+		local targetCF = CFrame.new(0, 10, 0)
+		for _, obj in ipairs(Workspace:GetDescendants()) do
+			if (obj:IsA("SpawnLocation") or obj.Name:lower():find("spawn")) and obj:IsA("BasePart") then
+				targetCF = obj.CFrame + Vector3.new(0, 4, 0)
+				break
+			end
+		end
+		char.HumanoidRootPart.CFrame = targetCF
+	end)
+
+	local tpSheriffBtn = Instance.new("TextButton")
+	tpSheriffBtn.Size = UDim2.new(1, 0, 0, 50)
+	tpSheriffBtn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	tpSheriffBtn.Text = L("TpSheriff")
+	tpSheriffBtn.TextColor3 = Color3.fromRGB(60, 160, 255)
+	tpSheriffBtn.TextSize = 14
+	tpSheriffBtn.Font = Enum.Font.GothamSemibold
+	tpSheriffBtn.TextXAlignment = Enum.TextXAlignment.Left
+	tpSheriffBtn.LayoutOrder = 2
+	tpSheriffBtn.Parent = pages.TrollTab
+
+	local tpSheriffCorner = Instance.new("UICorner")
+	tpSheriffCorner.CornerRadius = UDim.new(0, 14)
+	tpSheriffCorner.Parent = tpSheriffBtn
+
+	local tpSheriffStroke = Instance.new("UIStroke")
+	tpSheriffStroke.Color = Color3.fromRGB(50, 60, 90)
+	tpSheriffStroke.Thickness = 1.2
+	tpSheriffStroke.Transparency = 0.5
+	tpSheriffStroke.Parent = tpSheriffBtn
+
+	tpSheriffBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		local char = localPlayer.Character
+		if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+		local sheriff = findSheriffPlayer()
+		if sheriff and sheriff.Character and sheriff.Character:FindFirstChild("HumanoidRootPart") then
+			char.HumanoidRootPart.CFrame = sheriff.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
+		end
+	end)
+
+	local tpMurderBtn = Instance.new("TextButton")
+	tpMurderBtn.Size = UDim2.new(1, 0, 0, 50)
+	tpMurderBtn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	tpMurderBtn.Text = L("TpMurder")
+	tpMurderBtn.TextColor3 = Color3.fromRGB(255, 60, 60)
+	tpMurderBtn.TextSize = 14
+	tpMurderBtn.Font = Enum.Font.GothamSemibold
+	tpMurderBtn.TextXAlignment = Enum.TextXAlignment.Left
+	tpMurderBtn.LayoutOrder = 3
+	tpMurderBtn.Parent = pages.TrollTab
+
+	local tpMurderCorner = Instance.new("UICorner")
+	tpMurderCorner.CornerRadius = UDim.new(0, 14)
+	tpMurderCorner.Parent = tpMurderBtn
+
+	local tpMurderStroke = Instance.new("UIStroke")
+	tpMurderStroke.Color = Color3.fromRGB(50, 60, 90)
+	tpMurderStroke.Thickness = 1.2
+	tpMurderStroke.Transparency = 0.5
+	tpMurderStroke.Parent = tpMurderBtn
+
+	tpMurderBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		local char = localPlayer.Character
+		if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+		local murder = findMurdererPlayer()
+		if murder and murder.Character and murder.Character:FindFirstChild("HumanoidRootPart") then
+			char.HumanoidRootPart.CFrame = murder.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
+		end
+	end)
+
+	-- =========================================================================
+	-- SYSTÈME DE CROSSHAIR ANIMÉ (Cœurs, animations dynamiques, vitesse variable, couleur & Chroma au premier plan du shift lock)
+	-- =========================================================================
+	local animatedCrosshairEnabled = savedSettings.AnimatedCrosshairEnabled or false
+	local crosshairAnimSpeed = savedSettings.CrosshairAnimSpeed or 2
+	local crosshairColorIndex = savedSettings.CrosshairColorIndex or 1
+	local customCrosshairColor = savedSettings.CustomCrosshairColor and Color3.fromRGB(unpack(savedSettings.CustomCrosshairColor)) or Color3.fromRGB(255, 100, 150)
+
+	local colorPresets = {
+		Color3.fromRGB(255, 100, 150), -- Rose Cœur
+		Color3.fromRGB(255, 215, 0),   -- Or / Chroma Or (Devant le petit rond central)
+		Color3.fromRGB(0, 255, 200),   -- Cyan Néon
+		Color3.fromRGB(150, 50, 255)   -- Violet Améthyste
+	}
+
+	local animatedCrosshairGui = Instance.new("ScreenGui")
+	animatedCrosshairGui.Name = "AnimatedCrosshairGui"
+	animatedCrosshairGui.ResetOnSpawn = false
+	animatedCrosshairGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	animatedCrosshairGui.Parent = playerGui
+
+	-- Conteneur principal du crosshair animé centré sur l'écran
+	local crosshairMainFrame = Instance.new("Frame")
+	crosshairMainFrame.Name = "CrosshairMainFrame"
+	crosshairMainFrame.Size = UDim2.new(0, 140, 0, 140)
+	crosshairMainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+	crosshairMainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+	crosshairMainFrame.BackgroundTransparency = 1
+	crosshairMainFrame.Visible = animatedCrosshairEnabled
+	crosshairMainFrame.Parent = animatedCrosshairGui
+
+	-- Création des éléments cœurs animés autour du centre (pulse & rotation dynamique de plus en plus rapide)
+	local heartElements = {}
+	local heartCount = 4
+	for i = 1, heartCount do
+		local heart = Instance.new("TextLabel")
+		heart.Size = UDim2.new(0, 28, 0, 28)
+		heart.AnchorPoint = Vector2.new(0.5, 0.5)
+		heart.BackgroundTransparency = 1
+		heart.Text = "❤️"
+		heart.TextSize = 18
+		heart.Font = Enum.Font.GothamBold
+		heart.TextColor3 = colorPresets[crosshairColorIndex]
+		heart.Parent = crosshairMainFrame
+		table.insert(heartElements, heart)
+	end
+
+	-- Le petit rond central avec le Chroma Or placé strictement au premier plan
+	local centerDot = Instance.new("Frame")
+	centerDot.Name = "CenterChromaDot"
+	centerDot.Size = UDim2.new(0, 8, 0, 8)
+	centerDot.AnchorPoint = Vector2.new(0.5, 0.5)
+	centerDot.Position = UDim2.new(0.5, 0, 0.5, 0)
+	centerDot.BackgroundColor3 = Color3.fromRGB(255, 215, 0) -- Or brillant / Chroma Or
+	centerDot.BorderSizePixel = 0
+	centerDot.ZIndex = 50 -- Devant tout, y compris le shift lock visuel
+	centerDot.Parent = crosshairMainFrame
+
+	local dotCorner = Instance.new("UICorner")
+	dotCorner.CornerRadius = UDim.new(1, 0)
+	dotCorner.Parent = centerDot
+
+	local dotStroke = Instance.new("UIStroke")
+	dotStroke.Color = Color3.fromRGB(255, 255, 255)
+	dotStroke.Thickness = 1.2
+	dotStroke.Parent = centerDot
+
+	-- Rendu animé de l'accélération progressive des cœurs et pulsations
+	RunService.RenderStepped:Connect(function(dt)
+		if animatedCrosshairEnabled and crosshairMainFrame.Visible then
+			local t = tick() * crosshairAnimSpeed * 3
+			local pulse = 1 + math.sin(t * 2) * 0.25
+			local radius = 32 + math.sin(t * 1.5) * 10
+
+			for index, heartObj in ipairs(heartElements) do
+				local angle = ((index - 1) / heartCount) * (math.pi * 2) + (t * 0.8)
+				local xPos = math.cos(angle) * radius
+				local yPos = math.sin(angle) * radius
+				
+				heartObj.Position = UDim2.new(0.5, xPos, 0.5, yPos)
+				heartObj.Rotation = (t * 45) + (index * 25)
+				heartObj.TextSize = math.clamp(16 * pulse, 12, 26)
+			end
+		end
+	end)
+
+	-- =========================================================================
+	-- CONFIGURATION DE L'ONGLET CROSSHAIR DANS LE MENU
+	-- =========================================================================
+	local crosshairToggleBtn = Instance.new("TextButton")
+	crosshairToggleBtn.Size = UDim2.new(1, 0, 0, 50)
+	crosshairToggleBtn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	crosshairToggleBtn.Text = L("CrosshairEnable") .. (animatedCrosshairEnabled and "ON" or "OFF")
+	crosshairToggleBtn.TextColor3 = animatedCrosshairEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+	crosshairToggleBtn.TextSize = 14
+	crosshairToggleBtn.Font = Enum.Font.GothamSemibold
+	crosshairToggleBtn.TextXAlignment = Enum.TextXAlignment.Left
+	crosshairToggleBtn.LayoutOrder = 2
+	crosshairToggleBtn.Parent = pages.CrosshairTab
+
+	local chCorner = Instance.new("UICorner")
+	chCorner.CornerRadius = UDim.new(0, 14)
+	chCorner.Parent = crosshairToggleBtn
+
+	local chStroke = Instance.new("UIStroke")
+	chStroke.Color = Color3.fromRGB(50, 60, 90)
+	chStroke.Thickness = 1.2
+	chStroke.Transparency = 0.5
+	chStroke.Parent = crosshairToggleBtn
+
+	crosshairToggleBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		animatedCrosshairEnabled = not animatedCrosshairEnabled
+		crosshairMainFrame.Visible = animatedCrosshairEnabled
+		savedSettings.AnimatedCrosshairEnabled = animatedCrosshairEnabled
+		saveData(SAVE_FILE_NAME, savedSettings)
+		crosshairToggleBtn.Text = L("CrosshairEnable") .. (animatedCrosshairEnabled and "ON" or "OFF")
+		crosshairToggleBtn.TextColor3 = animatedCrosshairEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+	end)
+
+	-- Carte de réglage de la vitesse de l'animation des cœurs
+	local chSpeedCard = Instance.new("Frame")
+	chSpeedCard.Size = UDim2.new(1, 0, 0, 75)
+	chSpeedCard.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	chSpeedCard.BorderSizePixel = 0
+	chSpeedCard.LayoutOrder = 3
+	chSpeedCard.Parent = pages.CrosshairTab
+
+	local chSpeedCorner = Instance.new("UICorner")
+	chSpeedCorner.CornerRadius = UDim.new(0, 14)
+	chSpeedCorner.Parent = chSpeedCard
+
+	local chSpeedStroke = Instance.new("UIStroke")
+	chSpeedStroke.Color = Color3.fromRGB(50, 60, 90)
+	chSpeedStroke.Thickness = 1.2
+	chSpeedStroke.Transparency = 0.5
+	chSpeedStroke.Parent = chSpeedCard
+
+	local chSpeedLabel = Instance.new("TextLabel")
+	chSpeedLabel.Size = UDim2.new(1, -20, 0, 25)
+	chSpeedLabel.Position = UDim2.new(0, 12, 0, 8)
+	chSpeedLabel.BackgroundTransparency = 1
+	chSpeedLabel.Font = Enum.Font.GothamBold
+	chSpeedLabel.TextSize = 13
+	chSpeedLabel.TextColor3 = Color3.fromRGB(200, 210, 240)
+	chSpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
+	chSpeedLabel.Text = L("CrosshairSpeed") .. crosshairAnimSpeed .. "x"
+	chSpeedLabel.Parent = chSpeedCard
+
+	local chsMinus = Instance.new("TextButton")
+	chsMinus.Size = UDim2.new(0, 38, 0, 32)
+	chsMinus.Position = UDim2.new(0, 12, 0, 35)
+	chsMinus.BackgroundColor3 = Color3.fromRGB(30, 36, 52)
+	chsMinus.Text = "-"
+	chsMinus.TextColor3 = Color3.fromRGB(255, 255, 255)
+	chsMinus.TextSize = 16
+	chsMinus.Font = Enum.Font.GothamBold
+	chsMinus.Parent = chSpeedCard
+
+	local chsMinusCorner = Instance.new("UICorner")
+	chsMinusCorner.CornerRadius = UDim.new(0, 8)
+	chsMinusCorner.Parent = chsMinus
+
+	local chsPlus = Instance.new("TextButton")
+	chsPlus.Size = UDim2.new(0, 38, 0, 32)
+	chsPlus.Position = UDim2.new(0, 56, 0, 35)
+	chsPlus.BackgroundColor3 = Color3.fromRGB(30, 36, 52)
+	chsPlus.Text = "+"
+	chsPlus.TextColor3 = Color3.fromRGB(255, 255, 255)
+	chsPlus.TextSize = 16
+	chsPlus.Font = Enum.Font.GothamBold
+	chsPlus.Parent = chSpeedCard
+
+	local chsPlusCorner = Instance.new("UICorner")
+	chsPlusCorner.CornerRadius = UDim.new(0, 8)
+	chsPlusCorner.Parent = chsPlus
+
+	local chsInfo = Instance.new("TextLabel")
+	chsInfo.Size = UDim2.new(1, -110, 0, 32)
+	chsInfo.Position = UDim2.new(0, 105, 0, 35)
+	chsInfo.BackgroundTransparency = 1
+	chsInfo.Font = Enum.Font.GothamMedium
+	chsInfo.TextSize = 12
+	chsInfo.TextColor3 = Color3.fromRGB(150, 160, 185)
+	chsInfo.TextXAlignment = Enum.TextXAlignment.Left
+	chsInfo.Text = "(Animations de plus en plus rapides)"
+	chsInfo.Parent = chSpeedCard
+
+	chsMinus.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		crosshairAnimSpeed = math.clamp(crosshairAnimSpeed - 0.5, 0.5, 10)
+		chSpeedLabel.Text = L("CrosshairSpeed") .. string.format("%.1f", crosshairAnimSpeed) .. "x"
+		savedSettings.CrosshairAnimSpeed = crosshairAnimSpeed
+		saveData(SAVE_FILE_NAME, savedSettings)
+	end)
+
+	chsPlus.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		crosshairAnimSpeed = math.clamp(crosshairAnimSpeed + 0.5, 0.5, 10)
+		chSpeedLabel.Text = L("CrosshairSpeed") .. string.format("%.1f", crosshairAnimSpeed) .. "x"
+		savedSettings.CrosshairAnimSpeed = crosshairAnimSpeed
+		saveData(SAVE_FILE_NAME, savedSettings)
+	end)
+
+	-- Carte de changement de couleur des cœurs
+	local chColorCard = Instance.new("TextButton")
+	chColorCard.Size = UDim2.new(1, 0, 0, 50)
+	chColorCard.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	chColorCard.Text = L("CrosshairColor")
+	chColorCard.TextColor3 = Color3.fromRGB(255, 215, 0)
+	chColorCard.TextSize = 14
+	chColorCard.Font = Enum.Font.GothamSemibold
+	chColorCard.TextXAlignment = Enum.TextXAlignment.Left
+	chColorCard.LayoutOrder = 4
+	chColorCard.Parent = pages.CrosshairTab
+
+	local chcCorner = Instance.new("UICorner")
+	chcCorner.CornerRadius = UDim.new(0, 14)
+	chcCorner.Parent = chColorCard
+
+	local chcStroke = Instance.new("UIStroke")
+	chcStroke.Color = Color3.fromRGB(50, 60, 90)
+	chcStroke.Thickness = 1.2
+	chcStroke.Transparency = 0.5
+	chcStroke.Parent = chColorCard
+
+	chColorCard.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		crosshairColorIndex = (crosshairColorIndex % #colorPresets) + 1
+		local newCol = colorPresets[crosshairColorIndex]
+		for _, h in ipairs(heartElements) do
+			h.TextColor3 = newCol
+		end
+		savedSettings.CrosshairColorIndex = crosshairColorIndex
+		saveData(SAVE_FILE_NAME, savedSettings)
+	end)
+
+	-- =========================================================================
+	-- FIN DU MODULE CROSSHAIRS
+	-- =========================================================================
+
+	local anglaisSheriffEnabled = savedSettings.AnglaisSheriffEnabled or false
+	local sheriffAimlockEnabled = savedSettings.SheriffAimlockEnabled or false
+	local sheriffSilentAimEnabled = savedSettings.SheriffSilentAimEnabled or false
+	local autoShootMurderEnabled = savedSettings.AutoShootMurderEnabled or false
+	local autoGrabGunEnabled = savedSettings.AutoGrabGunEnabled or false
+
+	local function createSheriffFeatureButton(textKey, order, color3, settingKey, getStateFunc, setStateFunc, customCallback)
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(1, 0, 0, 50)
+		btn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+		local initialState = getStateFunc()
+		btn.Text = L(textKey) .. (initialState and "ON" or "OFF")
+		btn.TextColor3 = initialState and Color3.fromRGB(90, 255, 90) or color3
+		btn.TextSize = 14
+		btn.Font = Enum.Font.GothamSemibold
+		btn.TextXAlignment = Enum.TextXAlignment.Left
+		btn.LayoutOrder = order
+		btn.Parent = pages.SheriffTab
+		
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 14)
+		corner.Parent = btn
+		
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.fromRGB(50, 60, 90)
+		stroke.Thickness = 1.2
+		stroke.Transparency = 0.5
+		stroke.Parent = btn
+		
+		btn.MouseButton1Click:Connect(function()
+			playKeyboardSound()
+			local newState = not getStateFunc()
+			setStateFunc(newState)
+			savedSettings[settingKey] = newState
+			saveData(SAVE_FILE_NAME, savedSettings)
+			btn.Text = L(textKey) .. (newState and "ON" or "OFF")
+			btn.TextColor3 = newState and Color3.fromRGB(90, 255, 90) or color3
+			if customCallback then
+				customCallback(newState)
+			end
+		end)
+		return btn
+	end
+
+	createSheriffFeatureButton("EnglishSheriff", 2, Color3.fromRGB(60, 160, 255), "AnglaisSheriffEnabled", function() return anglaisSheriffEnabled end, function(v) anglaisSheriffEnabled = v end)
+	
+	createSheriffFeatureButton("SheriffAimlock", 3, Color3.fromRGB(255, 120, 120), "SheriffAimlockEnabled", 
+		function() return sheriffAimlockEnabled end, 
+		function(v) sheriffAimlockEnabled = v end,
+		function(newState)
+			toggleAimlockFloatingPanel(newState)
+			if newState then
+				enableNativeShiftLock()
+			end
+		end
+	)
+
+	createSheriffFeatureButton("SheriffSilentAim", 4, Color3.fromRGB(255, 200, 80), "SheriffSilentAimEnabled", function() return sheriffSilentAimEnabled end, function(v) sheriffSilentAimEnabled = v end)
+	createSheriffFeatureButton("AutoShootMurder", 5, Color3.fromRGB(255, 90, 90), "AutoShootMurderEnabled", function() return autoShootMurderEnabled end, function(v) autoShootMurderEnabled = v end)
+	createSheriffFeatureButton("AutoGrabGun", 6, Color3.fromRGB(90, 255, 180), "AutoGrabGunEnabled", function() return autoGrabGunEnabled end, function(v) autoGrabGunEnabled = v end)
+
+	if sheriffAimlockEnabled then
+		toggleAimlockFloatingPanel(true)
+		enableNativeShiftLock()
+	end
+
+	local sheriffCrosshairGui = Instance.new("ScreenGui")
+	sheriffCrosshairGui.Name = "SheriffCrosshairGui"
+	sheriffCrosshairGui.ResetOnSpawn = false
+	sheriffCrosshairGui.Parent = playerGui
+
+	local headCrosshair = Instance.new("Frame")
+	headCrosshair.Size = UDim2.new(0, 100, 0, 100)
+	headCrosshair.AnchorPoint = Vector2.new(0.5, 0.5)
+	headCrosshair.Position = UDim2.new(0.5, 0, 0.5, 0)
+	headCrosshair.BackgroundTransparency = 1
+	headCrosshair.Visible = false
+	headCrosshair.Parent = sheriffCrosshairGui
+
+	for i = 1, 4 do
+		local bar = Instance.new("Frame")
+		bar.Size = UDim2.new(0, 20, 0, 4)
+		bar.Position = UDim2.new(0.5, -10, 0.5, -2)
+		bar.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+		bar.BorderSizePixel = 0
+		bar.Rotation = (i - 1) * 90
+		local cornerBar = Instance.new("UICorner")
+		cornerBar.CornerRadius = UDim.new(1, 0)
+		cornerBar.Parent = bar
+		bar.Parent = headCrosshair
+	end
+
+	-- FONCTION DE PRÉCISION AMÉLIORÉE : Cible la tête/cou précisément en prédisant les mouvements et les sauts
+	local function getTargetHitPosition(targetChar, dt)
+		local head = targetChar:FindFirstChild("Head")
+		local upperTorso = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso")
+		local rootPart = targetChar:FindFirstChild("HumanoidRootPart")
+		local humanoid = targetChar:FindFirstChildOfClass("Humanoid")
+		
+		-- Visée ultra précise centrée sur la tête/cou
+		local baseTargetPos = nil
+		if head then
+			baseTargetPos = head.Position
+		elseif upperTorso then
+			baseTargetPos = upperTorso.Position + Vector3.new(0, 1, 0)
+		elseif rootPart then
+			baseTargetPos = rootPart.Position + Vector3.new(0, 1.5, 0)
+		end
+
+		if baseTargetPos and rootPart then
+			local targetVelocity = rootPart.AssemblyLinearVelocity
+			
+			local jumpCompensation = 0
+			if humanoid then
+				local state = humanoid:GetState()
+				if state == Enum.HumanoidStateType.Jumping or state == Enum.HumanoidStateType.Freefall or state == Enum.HumanoidStateType.FallingDown then
+					if targetVelocity.Y > 0.1 then
+						jumpCompensation = (targetVelocity.Y * 0.16) + 1.1
+					else
+						jumpCompensation = (targetVelocity.Y * 0.14)
+					end
+				end
+			end
+
+			local distanceToTarget = 0
+			local myChar = localPlayer.Character
+			local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+			if myRoot then
+				distanceToTarget = (myRoot.Position - rootPart.Position).Magnitude
+			end
+			local distancePredictionScale = math.clamp(distanceToTarget * 0.003, 1, 1.8)
+
+			local horizontalPrediction = Vector3.new(targetVelocity.X, 0, targetVelocity.Z) * 0.14 * distancePredictionScale
+			local verticalPrediction = Vector3.new(0, jumpCompensation, 0)
+			
+			local finalPredictedPosition = baseTargetPos + horizontalPrediction + verticalPrediction
+			return finalPredictedPosition
+		end
+		
+		return nil
+	end
+
+	local lastKnownSheriffPos = nil
+	local wasSheriffAlive = false
+
+	RunService.RenderStepped:Connect(function(dt)
+		if headCrosshair.Visible then headCrosshair.Rotation = headCrosshair.Rotation + (90 * dt) end
+
+		if anglaisSheriffEnabled then
+			local char = localPlayer.Character
+			local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+			local backpack = localPlayer:FindFirstChild("Backpack")
+			if char and humanoid then
+				local hasGunEquipped = false
+				for _, item in ipairs(char:GetChildren()) do
+					if item:IsA("Tool") then
+						local name = item.Name:lower()
+						if name == "gun" or name == "revolver" or name:find("pistolet") then hasGunEquipped = true break end
+					end
+				end
+				if not hasGunEquipped and backpack then
+					for _, item in ipairs(backpack:GetChildren()) do
+						if item:IsA("Tool") then
+							local name = item.Name:lower()
+							if name == "gun" or name == "revolver" or name:find("pistolet") then humanoid:EquipTool(item) break end
+						end
+					end
+				end
+			end
+		end
+		
+		if autoGrabGunEnabled then
+			pcall(function()
+				local char = localPlayer.Character
+				if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") then
+					local hrp = char.HumanoidRootPart
+					local currentSheriff = findSheriffPlayer()
+
+					if currentSheriff and currentSheriff.Character and currentSheriff.Character:FindFirstChild("HumanoidRootPart") then
+						wasSheriffAlive = true
+						lastKnownSheriffPos = currentSheriff.Character.HumanoidRootPart.CFrame
+					else
+						if wasSheriffAlive then
+							wasSheriffAlive = false
+							local originalPos = hrp.CFrame
+
+							local droppedGun = nil
+							for _, obj in ipairs(Workspace:GetChildren()) do
+								if obj:IsA("BackpackItem") or obj:IsA("Tool") then
+									local nameLower = obj.Name:lower()
+									if nameLower == "gun" or nameLower == "revolver" or nameLower:find("pistolet") or nameLower:find("droppedgun") then
+										droppedGun = obj
+										break
+									end
+								end
+							end
+
+							if droppedGun and droppedGun:FindFirstChild("Handle") then
+								hrp.CFrame = droppedGun.Handle.CFrame + Vector3.new(0, 0.5, 0)
+							elseif lastKnownSheriffPos then
+								hrp.CFrame = lastKnownSheriffPos + Vector3.new(0, 0.5, 0)
+							end
+
+							task.wait(0.08)
+							hrp.CFrame = originalPos
+						end
+					end
+
+					for _, obj in ipairs(Workspace:GetChildren()) do
+						if obj:IsA("BackpackItem") or obj:IsA("Tool") then
+							local nameLower = obj.Name:lower()
+							if nameLower == "gun" or nameLower == "revolver" or nameLower:find("pistolet") or nameLower:find("droppedgun") then
+								local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildWhichIsA("BasePart")
+								if handle and handle.Parent then
+									local originalPos = hrp.CFrame
+									hrp.CFrame = handle.CFrame + Vector3.new(0, 0.5, 0)
+									task.wait(0.08)
+									hrp.CFrame = originalPos
+									break
+								end
+							end
+						end
+					end
+				end
+			end)
+		end
+		
+		-- Premier système d'aim lock (Aim Lock for Clip avec tir permanent et ultra précis sur la tête)
+		if autoShootMurderEnabled then
+			pcall(function()
+				local char = localPlayer.Character
+				if char then
+					local tool = char:FindFirstChildOfClass("Tool")
+					if tool then
+						local name = tool.Name:lower()
+						if name == "gun" or name == "revolver" or name:find("pistolet") then
+							local murderPlr = findMurdererPlayer()
+							if murderPlr and murderPlr.Character then
+								local preciseTargetPos = getTargetHitPosition(murderPlr.Character, dt)
+								if preciseTargetPos then
+									local camCF = Camera.CFrame
+									local shiftLockOffset = camCF.RightVector * 1.75
+									local adjustedCamPos = camCF.Position + shiftLockOffset
+									
+									local targetCFrame = CFrame.new(adjustedCamPos, preciseTargetPos)
+									Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, 1)
+									tool:Activate()
+								end
+							end
+						end
+					end
+				end
+			end)
+		end
+		
+		-- Second système d'aim lock principal Shérif / Bouton Flottant avec Shift Lock activé
+		local murderPlr = findMurdererPlayer()
+		if murderPlr and murderPlr.Character and murderPlr.Character:FindFirstChild("HumanoidRootPart") then
+			local murderChar = murderPlr.Character
+			local preciseTargetPos = getTargetHitPosition(murderChar, dt)
+			
+			if preciseTargetPos then
+				local aimlockActive = sheriffAimlockEnabled and floatActiveState
+				
+				if aimlockActive then
+					headCrosshair.Visible = true
+					local camCF = Camera.CFrame
+					local shiftLockOffset = camCF.RightVector * 1.75
+					local adjustedCamPos = camCF.Position + shiftLockOffset
+					
+					local targetCFrame = CFrame.new(adjustedCamPos, preciseTargetPos)
+					Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, 1)
+				else
+					headCrosshair.Visible = false
+				end
+			else
+				headCrosshair.Visible = false
+			end
+		else
+			headCrosshair.Visible = false
+		end
+	end)
+
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if sheriffSilentAimEnabled and floatActiveState and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+			pcall(function()
+				local char = localPlayer.Character
+				if not char then return end
+				local tool = char:FindFirstChildOfClass("Tool")
+				if tool then
+					local name = tool.Name:lower()
+					if name == "gun" or name == "revolver" or name:find("pistolet") then
+						local murderPlr = findMurdererPlayer()
+						if murderPlr and murderPlr.Character then
+							local preciseTargetPos = getTargetHitPosition(murderPlr.Character, 0.016)
+							if preciseTargetPos then
+								local camCF = Camera.CFrame
+								local shiftLockOffset = camCF.RightVector * 1.75
+								local adjustedCamPos = camCF.Position + shiftLockOffset
+								
+								Camera.CFrame = CFrame.new(adjustedCamPos, preciseTargetPos)
+								if char:FindFirstChild("HumanoidRootPart") then
+									char.HumanoidRootPart.CFrame = CFrame.new(char.HumanoidRootPart.Position, Vector3.new(preciseTargetPos.X, char.HumanoidRootPart.Position.Y, preciseTargetPos.Z))
+								end
+							end
+						end
+					end
+				end
+			end)
+		end
+	end)
+
+	local function createThemeOption(themeKey, bgColor, order)
+		local card = Instance.new("TextButton")
+		card.Size = UDim2.new(1, 0, 0, 54)
+		card.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+		card.Text = "   " .. L(themeKey)
+		card.TextColor3 = Color3.fromRGB(240, 240, 250)
+		card.TextSize = 15
+		card.Font = Enum.Font.GothamSemibold
+		card.TextXAlignment = Enum.TextXAlignment.Left
+		card.LayoutOrder = order
+		card.Parent = pages.Themes
+		
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 14)
+		corner.Parent = card
+		
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.fromRGB(50, 60, 90)
+		stroke.Thickness = 1.2
+		stroke.Transparency = 0.5
+		stroke.Parent = card
+		
+		card.MouseButton1Click:Connect(function()
+			playKeyboardSound()
+			TweenService:Create(mainFrame, TweenInfo.new(0.4), { BackgroundColor3 = bgColor }):Play()
+			TweenService:Create(sidebar, TweenInfo.new(0.4), { BackgroundColor3 = Color3.new(bgColor.R * 0.7, bgColor.G * 0.7, bgColor.B * 0.7) }):Play()
+		end)
+	end
+
+	createThemeOption("ThemeCyber", Color3.fromRGB(10, 14, 26), 2)
+	createThemeOption("ThemeNeon", Color3.fromRGB(20, 10, 28), 3)
+	createThemeOption("ThemeEmerald", Color3.fromRGB(8, 20, 14), 4)
+	createThemeOption("ThemeObsidian", Color3.fromRGB(8, 8, 10), 5)
+
+	local function createBgStyleOption(styleKey, modeKey, order)
+		local card = Instance.new("TextButton")
+		card.Size = UDim2.new(1, 0, 0, 54)
+		card.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+		card.Text = "   Style : " .. L(styleKey)
+		card.TextColor3 = Color3.fromRGB(240, 240, 250)
+		card.TextSize = 15
+		card.Font = Enum.Font.GothamSemibold
+		card.TextXAlignment = Enum.TextXAlignment.Left
+		card.LayoutOrder = order
+		card.Parent = pages.Backgrounds
+		
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 14)
+		corner.Parent = card
+		
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.fromRGB(50, 60, 90)
+		stroke.Thickness = 1.2
+		stroke.Transparency = 0.5
+		stroke.Parent = card
+		
+		card.MouseButton1Click:Connect(function()
+			playKeyboardSound()
+			generateBackground(modeKey)
+		end)
+	end
+
+	createBgStyleOption("BgBubbles", "Bubbles", 2)
+	createBgStyleOption("BgCubes", "Cubes", 3)
+	createBgStyleOption("BgStars", "Stars", 4)
+
+	closeBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		for i = 1, 40 do
+			local bubble = Instance.new("Frame")
+			local size = math.random(15, 50)
+			bubble.Size = UDim2.new(0, size, 0, size)
+			bubble.Position = mainFrame.Position + UDim2.new(math.random(), -350, math.random(), -230)
+			bubble.BackgroundColor3 = Color3.fromRGB(math.random(100, 180), math.random(180, 255), 255)
+			bubble.BackgroundTransparency = 0.15
+			bubble.BorderSizePixel = 0
+			bubble.ZIndex = 25
+			bubble.Parent = screenGui
+			local bCorner = Instance.new("UICorner")
+			bCorner.CornerRadius = UDim.new(1, 0)
+			bCorner.Parent = bubble
+			local tw = TweenService:Create(bubble, TweenInfo.new(0.35, Enum.EasingStyle.Exponential, Enum.EasingDirection.In), {
+				Position = UDim2.new(0.5, 0, 0, 38), Size = UDim2.new(0, 2, 0, 2), BackgroundTransparency = 1, Rotation = 540
+			})
+			tw:Play()
+			tw.Completed:Connect(function() bubble:Destroy() end)
+		end
+		TweenService:Create(mainCorner, TweenInfo.new(0.3), { CornerRadius = UDim.new(1, 0) }):Play()
+		local shrinkTween = TweenService:Create(mainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+			Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0, 38)
+		})
+		shrinkTween:Play()
+		shrinkTween.Completed:Connect(function()
+			mainFrame.Visible = false
+			miniButton.Size = UDim2.new(0, 0, 0, 0)
+			miniButton.Visible = true
+			TweenService:Create(miniButton, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.new(0, 48, 0, 48) }):Play()
+		end)
+	end)
+
+	miniButton.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		local miniTween = TweenService:Create(miniButton, TweenInfo.new(0.15), { Size = UDim2.new(0, 0, 0, 0) })
+		miniTween:Play()
+		miniTween.Completed:Connect(function()
+			miniButton.Visible = false
+			mainFrame.Size = UDim2.new(0, 0, 0, 0)
+			mainFrame.Position = UDim2.new(0.5, 0, 0, 38)
+			mainCorner.CornerRadius = UDim.new(1, 0)
+			mainFrame.Visible = true
+			TweenService:Create(mainCorner, TweenInfo.new(0.4), { CornerRadius = UDim.new(0, 24) }):Play()
+			TweenService:Create(mainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+				Size = UDim2.new(0, 700, 0, 460), Position = UDim2.new(0.5, -350, 0.5, -230)
+			}):Play()
+		end)
+	end)
+
+	mainFrame.Size = UDim2.new(0, 0, 0, 0)
+	mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+	mainCorner.CornerRadius = UDim.new(1, 0)
+	TweenService:Create(mainCorner, TweenInfo.new(0.5), { CornerRadius = UDim.new(0, 24) }):Play()
+	TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Size = UDim2.new(0, 700, 0, 460), Position = UDim2.new(0.5, -350, 0.5, -230)
+	}):Play()
+end
+
+if savedKeyData and savedKeyData.KeyValid == true then
+	launchMainInterface()
+else
+	local keyGui = Instance.new("ScreenGui")
+	keyGui.Name = "PrimeKeySystemGui"
+	keyGui.ResetOnSpawn = false
+	keyGui.Parent = playerGui
+
+	local keyFrame = Instance.new("Frame")
+	keyFrame.Size = UDim2.new(0, 420, 0, 240)
+	keyFrame.Position = UDim2.new(0.5, -210, 0.5, -120)
+	keyFrame.BackgroundColor3 = Color3.fromRGB(11, 13, 20)
+	keyFrame.BorderSizePixel = 0
+	keyFrame.Parent = keyGui
+
+	local kCorner = Instance.new("UICorner")
+	kCorner.CornerRadius = UDim.new(0, 20)
+	kCorner.Parent = keyFrame
+
+	local kStroke = Instance.new("UIStroke")
+	kStroke.Color = Color3.fromRGB(140, 150, 230)
+	kStroke.Thickness = 2
+	kStroke.Transparency = 0.3
+	kStroke.Parent = keyFrame
+
+	keyFrame.Size = UDim2.new(0, 0, 0, 0)
+	keyFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+	TweenService:Create(keyFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Size = UDim2.new(0, 420, 0, 240), Position = UDim2.new(0.5, -210, 0.5, -120)
+	}):Play()
+
+	local titleKey = Instance.new("TextLabel")
+	titleKey.Size = UDim2.new(1, 0, 0, 50)
+	titleKey.Position = UDim2.new(0, 0, 0, 15)
+	titleKey.BackgroundTransparency = 1
+	titleKey.Text = "⚡ vbnx V2 — KEY"
+	titleKey.TextColor3 = Color3.fromRGB(255, 255, 255)
+	titleKey.TextSize = 18
+	titleKey.Font = Enum.Font.GothamBold
+	titleKey.Parent = keyFrame
+
+	local subKey = Instance.new("TextLabel")
+	subKey.Size = UDim2.new(1, -40, 0, 30)
+	subKey.Position = UDim2.new(0, 20, 0, 55)
+	subKey.BackgroundTransparency = 1
+	subKey.Text = "Entrez votre clé :"
+	subKey.TextColor3 = Color3.fromRGB(180, 185, 210)
+	subKey.TextSize = 13
+	subKey.Font = Enum.Font.GothamMedium
+	subKey.Parent = keyFrame
+
+	local keyBox = Instance.new("TextBox")
+	keyBox.Size = UDim2.new(1, -50, 0, 48)
+	keyBox.Position = UDim2.new(0, 25, 0, 95)
+	keyBox.BackgroundColor3 = Color3.fromRGB(18, 22, 32)
+	keyBox.PlaceholderText = "Clé..."
+	keyBox.Text = ""
+	keyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	keyBox.PlaceholderColor3 = Color3.fromRGB(100, 110, 140)
+	keyBox.TextSize = 14
+	keyBox.Font = Enum.Font.GothamBold
+	keyBox.ClearTextOnFocus = false
+	keyBox.Parent = keyFrame
+
+	local boxCorner = Instance.new("UICorner")
+	boxCorner.CornerRadius = UDim.new(0, 12)
+	boxCorner.Parent = keyBox
+
+	local boxStroke = Instance.new("UIStroke")
+	boxStroke.Color = Color3.fromRGB(60, 70, 100)
+	boxStroke.Thickness = 1.5
+	boxStroke.Parent = keyBox
+
+	local submitBtn = Instance.new("TextButton")
+	submitBtn.Size = UDim2.new(1, -50, 0, 48)
+	submitBtn.Position = UDim2.new(0, 25, 0, 160)
+	submitBtn.BackgroundColor3 = Color3.fromRGB(90, 110, 255)
+	submitBtn.Text = "VALIDER"
+	submitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	submitBtn.TextSize = 14
+	submitBtn.Font = Enum.Font.GothamBold
+	submitBtn.Parent = keyFrame
+
+	local subCorner = Instance.new("UICorner")
+	subCorner.CornerRadius = UDim.new(0, 12)
+	subCorner.Parent = submitBtn
+
+	submitBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		if keyBox.Text == CORRECT_KEY then
+			saveData(KEY_FILE_NAME, { KeyValid = true })
+			TweenService:Create(keyFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+				Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)
+			}):Play()
+			task.wait(0.3)
+			keyGui:Destroy()
+			launchMainInterface()
+		else
+			boxStroke.Color = Color3.fromRGB(255, 90, 90)
+			keyBox.Text = ""
+			keyBox.PlaceholderText = "Clé incorrecte !"
+			task.wait(1)
+			boxStroke.Color = Color3.fromRGB(60, 70, 100)
+			keyBox.PlaceholderText = "Clé..."
+		end
+	end)
+end
+
