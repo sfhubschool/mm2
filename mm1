@@ -1,0 +1,1459 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
+local Camera = Workspace.CurrentCamera
+local localPlayer = Players.LocalPlayer
+local playerGui = localPlayer:WaitForChild("PlayerGui")
+local SAVE_FILE_NAME = "PrimeV2_Settings.json"
+local KEY_FILE_NAME = "PrimeV2_Key.json"
+local CORRECT_KEY = "SFAR"
+
+local function loadData(filename)
+	local success, data = pcall(function()
+		if readfile and isfile and isfile(filename) then
+			return HttpService:JSONDecode(readfile(filename))
+		end
+	end)
+	if success and type(data) == "table" then return data end
+	return {}
+end
+local function saveData(filename, data)
+	pcall(function()
+		if writefile then writefile(filename, HttpService:JSONEncode(data)) end
+	end)
+end
+
+local savedSettings = loadData(SAVE_FILE_NAME)
+local savedKeyData = loadData(KEY_FILE_NAME)
+
+if playerGui:FindFirstChild("UltraModernPanel") then playerGui.UltraModernPanel:Destroy() end
+if playerGui:FindFirstChild("SheriffCrosshairGui") then playerGui.SheriffCrosshairGui:Destroy() end
+if playerGui:FindFirstChild("PrimeKeySystemGui") then playerGui.PrimeKeySystemGui:Destroy() end
+if playerGui:FindFirstChild("AimlockFloatingPanel") then playerGui.AimlockFloatingPanel:Destroy() end
+if playerGui:FindFirstChild("ShiftLockAlertGui") then playerGui.ShiftLockAlertGui:Destroy() end
+if Workspace:FindFirstChild("ESPFolder") then Workspace.ESPFolder:Destroy() end
+
+local currentLanguage = savedSettings.Language or "FR"
+local translations = {
+	FR = {
+		Brand="zizi le gay", Home="Accueil", ESP="ESP", AutoFarm="Autofarm",
+		SheriffTab="Sheriff", MurderTab="Murderer", TrollTab="Troll", CrosshairTab="Crosshairs",
+		Themes="Thèmes", Backgrounds="Fonds", Settings="Paramètres",
+		User="User : ", Pseudo="Pseudo : @",
+		MurderChance="🎯 Chance Murderer :", StatusDisabled="Statut : Off",
+		Enable="On", DisableRefuse="Off", AloneServer="Seul (100%)",
+		ChanceRound="~%.1f%% (%d joueurs)",
+		EspMm2="   ESP : ", NoClip="   Noclip : ", Freecam="   Freecam : ",
+		AutoFarmCoins="   Autofarm : ", SpeedAutoFarm="⚡ Vitesse : ",
+		SpeedAutoFarmHint="(Plus haut = plus rapide)", WaitMap="   Autofarm : Attente map...",
+		TargetMurder="   Target Murderer : ", TargetSheriff="   Target Sheriff : ",
+		TornadoSpeedLabel="🌪️ Vitesse Rotation : ", TornadoSpeedHint="(Vitesse folle > 3000)",
+		InstantKillAll="   Instant Kill All : ", InfiniteJump="   Infinite Jump : ",
+		TpMapCenter="   TP Centre Map", TpRoof="   TP Roof", TpSpawn="   TP Spawn",
+		EnglishSheriff="   Auto Equip Gun : ", SheriffAimlock="   Aimlock (Cou + ShiftLock) : ",
+		SheriffSilentAim="   Silent Aim : ", AutoShootMurder="   aim lock for clip : ",
+		AutoGrabGun="   Auto Grab gun : ", TpSheriff="   TP Shérif", TpMurder="   TP Murderer",
+		ThemeCyber="Cyber Néon", ThemeNeon="Améthyste", ThemeEmerald="Émeraude", ThemeObsidian="Obsidienne",
+		BgBubbles="Bulles", BgCubes="Cubes", BgStars="Étoiles",
+		LangToggle="🌍 Langue : Français", CoinTransitSpeed="🚀 Vitesse Pièces : ",
+		TransitHint="(Vitesse déplacement)",
+		ShiftLockAlert="Shift lock activé automatiquement ! / Shift lock enabled automatically!",
+		CrosshairEnable="   Activer Crosshair Animé : ", CrosshairSpeed="⚡ Vitesse Animation : ",
+		CrosshairColor="🎨 Changer Couleur (RVB Hex/Preset)"
+	},
+	EN = {
+		Brand="⚡ zizi le gay", Home="Home", ESP="ESP", AutoFarm="Autofarm",
+		SheriffTab="Sheriff", MurderTab="Murderer", TrollTab="Troll", CrosshairTab="Crosshairs",
+		Themes="Themes", Backgrounds="Backgrounds", Settings="Settings",
+		User="User: ", Pseudo="Handle: @",
+		MurderChance="🎯 Murderer Chance:", StatusDisabled="Status: Off",
+		Enable="On", DisableRefuse="Off", AloneServer="Alone (100%)",
+		ChanceRound="~%.1f%% (%d players)",
+		EspMm2="   ESP: ", NoClip="   Noclip = ", Freecam="   Freecam: ",
+		AutoFarmCoins="   Autofarm: ", SpeedAutoFarm="   Speed: ",
+		SpeedAutoFarmHint="(Higher = faster)", WaitMap="   Autofarm: Waiting...",
+		TargetMurder="   Target Murderer: ", TargetSheriff="   Target Sheriff: ",
+		TornadoSpeedLabel="🌪️ Rotation Speed: ", TornadoSpeedHint="(Crazy speed > 3000)",
+		InstantKillAll="   Instant Kill All : ", InfiniteJump="   Infinite Jump: ",
+		TpMapCenter="   TP Map Center", TpRoof="   TP Roof", TpSpawn="   TP Spawn",
+		EnglishSheriff="   Auto Equip Gun: ", SheriffAimlock="   Aimlock (Neck + ShiftLock) : ",
+		SheriffSilentAim="   Silent Aim: ", AutoShootMurder="     aim lock clip: ",
+		AutoGrabGun="   Auto Grab Gun : ", TpSheriff="   TP Sheriff", TpMurder="   TP Murderer",
+		ThemeCyber="Cyber Neon", ThemeNeon="Amethyst", ThemeEmerald="Emerald", ThemeObsidian="Obsidian",
+		BgBubbles="Bubbles", BgCubes="Cubes", BgStars="Stars",
+		LangToggle="🌍 Language: English", CoinTransitSpeed="🚀 Coin Transit: ",
+		TransitHint="(Travel speed)",
+		ShiftLockAlert="Shift lock activé automatiquement ! / Shift lock enabled automatically!",
+		CrosshairEnable="   Enable Animated Crosshair: ", CrosshairSpeed="⚡ Animation Speed: ",
+		CrosshairColor="🎨 Change Color"
+	}
+}
+local function L(key)
+	if translations[currentLanguage] and translations[currentLanguage][key] then
+		return translations[currentLanguage][key]
+	end
+	return key
+end
+
+local function playKeyboardSound()
+	pcall(function()
+		local sound = Instance.new("Sound")
+		sound.SoundId = "rbxassetid://6895070853"
+		sound.Volume = 1
+		sound.Pitch = math.random(95, 105) / 100
+		sound.Parent = playerGui
+		sound:Play()
+		sound.Ended:Connect(function() sound:Destroy() end)
+	end)
+end
+
+local function showShiftLockAlert()
+	if playerGui:FindFirstChild("ShiftLockAlertGui") then playerGui.ShiftLockAlertGui:Destroy() end
+	local alertGui = Instance.new("ScreenGui")
+	alertGui.Name = "ShiftLockAlertGui"
+	alertGui.ResetOnSpawn = false
+	alertGui.Parent = playerGui
+	local alertFrame = Instance.new("Frame")
+	alertFrame.Size = UDim2.new(0, 450, 0, 65)
+	alertFrame.Position = UDim2.new(0.5, -225, 0.1, 0)
+	alertFrame.BackgroundColor3 = Color3.fromRGB(14, 16, 24)
+	alertFrame.BackgroundTransparency = 0.1
+	alertFrame.BorderSizePixel = 0
+	alertFrame.Parent = alertGui
+	local alertCorner = Instance.new("UICorner"); alertCorner.CornerRadius = UDim.new(0, 14); alertCorner.Parent = alertFrame
+	local alertStroke = Instance.new("UIStroke"); alertStroke.Color = Color3.fromRGB(255, 120, 120); alertStroke.Thickness = 2; alertStroke.Transparency = 0.3; alertStroke.Parent = alertFrame
+	local alertText = Instance.new("TextLabel")
+	alertText.Size = UDim2.new(1, 0, 1, 0); alertText.BackgroundTransparency = 1
+	alertText.Text = L("ShiftLockAlert"); alertText.TextColor3 = Color3.fromRGB(255, 255, 255)
+	alertText.TextSize = 14; alertText.Font = Enum.Font.GothamBold; alertText.Parent = alertFrame
+	task.spawn(function()
+		task.wait(4)
+		if alertGui and alertGui.Parent then
+			TweenService:Create(alertFrame, TweenInfo.new(0.5), { BackgroundTransparency = 1 }):Play()
+			TweenService:Create(alertText, TweenInfo.new(0.5), { TextTransparency = 1 }):Play()
+			task.wait(0.5); alertGui:Destroy()
+		end
+	end)
+end
+
+local function enableNativeShiftLock()
+	pcall(function()
+		local playerModule = localPlayer:FindFirstChild("PlayerScripts") and localPlayer.PlayerScripts:FindFirstChild("PlayerModule")
+		if playerModule then
+			pcall(function()
+				local shiftLockController = require(playerModule.CameraModule.ShiftLockController)
+				if shiftLockController and not shiftLockController:IsShiftLocked() then
+					shiftLockController:ToggleShiftLock()
+				end
+			end)
+		end
+		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+		showShiftLockAlert()
+	end)
+end
+
+local aimlockFloatGui = nil
+local floatActiveState = false
+local function toggleAimlockFloatingPanel(enable)
+	if enable then
+		if aimlockFloatGui and aimlockFloatGui.Parent then return end
+		aimlockFloatGui = Instance.new("ScreenGui")
+		aimlockFloatGui.Name = "AimlockFloatingPanel"
+		aimlockFloatGui.ResetOnSpawn = false
+		aimlockFloatGui.Parent = playerGui
+		local floatFrame = Instance.new("Frame")
+		floatFrame.Name = "FloatFrame"
+		floatFrame.Size = UDim2.new(0, 190, 0, 45)
+		floatFrame.Position = UDim2.new(0.5, -95, 0.85, 0)
+		floatFrame.BackgroundColor3 = Color3.fromRGB(14, 16, 24)
+		floatFrame.BorderSizePixel = 0; floatFrame.Active = true; floatFrame.Draggable = true
+		floatFrame.Parent = aimlockFloatGui
+		local floatCorner = Instance.new("UICorner"); floatCorner.CornerRadius = UDim.new(0, 12); floatCorner.Parent = floatFrame
+		local floatStroke = Instance.new("UIStroke")
+		floatStroke.Color = floatActiveState and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(140, 150, 230)
+		floatStroke.Thickness = 1.5; floatStroke.Transparency = 0.4; floatStroke.Parent = floatFrame
+		local floatBtn = Instance.new("TextButton")
+		floatBtn.Size = UDim2.new(1, 0, 1, 0); floatBtn.BackgroundTransparency = 1
+		floatBtn.Text = floatActiveState and "Aimlock + ShiftLock : ON" or "Aimlock + ShiftLock : OFF"
+		floatBtn.TextColor3 = floatActiveState and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(255, 90, 90)
+		floatBtn.TextSize = 12; floatBtn.Font = Enum.Font.GothamBold; floatBtn.Parent = floatFrame
+		floatBtn.MouseButton1Click:Connect(function()
+			playKeyboardSound()
+			floatActiveState = not floatActiveState
+			if floatActiveState then
+				floatBtn.Text = "Aimlock + ShiftLock : ON"
+				floatBtn.TextColor3 = Color3.fromRGB(90, 255, 90)
+				floatStroke.Color = Color3.fromRGB(90, 255, 90)
+				enableNativeShiftLock()
+			else
+				floatBtn.Text = "Aimlock + ShiftLock : OFF"
+				floatBtn.TextColor3 = Color3.fromRGB(255, 90, 90)
+				floatStroke.Color = Color3.fromRGB(140, 150, 230)
+				UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+			end
+		end)
+	else
+		if aimlockFloatGui then aimlockFloatGui:Destroy(); aimlockFloatGui = nil end
+		floatActiveState = false
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+	end
+end
+
+local function launchMainInterface()
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "UltraModernPanel"; screenGui.ResetOnSpawn = false; screenGui.Parent = playerGui
+	local espFolder = Instance.new("Folder"); espFolder.Name = "ESPFolder"; espFolder.Parent = Workspace
+
+	local miniButton = Instance.new("ImageButton")
+	miniButton.Name = "MiniButton"; miniButton.Size = UDim2.new(0, 48, 0, 48)
+	miniButton.Position = UDim2.new(0.5, -24, 0, 15)
+	miniButton.BackgroundColor3 = Color3.fromRGB(18, 20, 30)
+	miniButton.Image = "rbxassetid://138676231904724"
+	miniButton.ScaleType = Enum.ScaleType.Fit; miniButton.Visible = false; miniButton.ZIndex = 10
+	miniButton.Parent = screenGui
+	local miniCorner = Instance.new("UICorner"); miniCorner.CornerRadius = UDim.new(1, 0); miniCorner.Parent = miniButton
+	local miniStroke = Instance.new("UIStroke"); miniStroke.Color = Color3.fromRGB(140, 150, 220); miniStroke.Thickness = 1.8; miniStroke.Transparency = 0.2; miniStroke.Parent = miniButton
+
+	local mainFrame = Instance.new("Frame")
+	mainFrame.Name = "MainFrame"; mainFrame.Size = UDim2.new(0, 700, 0, 460)
+	mainFrame.Position = UDim2.new(0.5, -350, 0.5, -230)
+	mainFrame.BackgroundColor3 = Color3.fromRGB(11, 13, 20)
+	mainFrame.BorderSizePixel = 0; mainFrame.ClipsDescendants = true; mainFrame.Parent = screenGui
+	local mainCorner = Instance.new("UICorner"); mainCorner.CornerRadius = UDim.new(0, 24); mainCorner.Parent = mainFrame
+	local mainStroke = Instance.new("UIStroke"); mainStroke.Color = Color3.fromRGB(140, 150, 230); mainStroke.Thickness = 2; mainStroke.Transparency = 0.5; mainStroke.Parent = mainFrame
+
+	local topBar = Instance.new("Frame"); topBar.Size = UDim2.new(1, 0, 0, 45); topBar.BackgroundTransparency = 1; topBar.ZIndex = 4; topBar.Parent = mainFrame
+	local logoImage = Instance.new("ImageLabel"); logoImage.Size = UDim2.new(0, 36, 0, 36); logoImage.Position = UDim2.new(0, 14, 0, 5); logoImage.BackgroundTransparency = 1; logoImage.Image = "rbxassetid://138676231904724"; logoImage.Parent = topBar
+
+	local resizeCorner = Instance.new("TextButton")
+	resizeCorner.Size = UDim2.new(0, 20, 0, 20); resizeCorner.Position = UDim2.new(1, -20, 1, -20)
+	resizeCorner.BackgroundTransparency = 1; resizeCorner.Text = "◢"
+	resizeCorner.TextColor3 = Color3.fromRGB(140, 150, 230); resizeCorner.TextSize = 14
+	resizeCorner.ZIndex = 10; resizeCorner.Parent = mainFrame
+	local resizing = false
+	resizeCorner.MouseButton1Down:Connect(function() resizing = true end)
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			resizing = false
+		end
+	end)
+	RunService.RenderStepped:Connect(function()
+		if resizing then
+			local mousePos = UserInputService:GetMouseLocation()
+			local newWidth = math.clamp(mousePos.X - mainFrame.AbsolutePosition.X, 450, 1200)
+			local newHeight = math.clamp(mousePos.Y - mainFrame.AbsolutePosition.Y, 300, 800)
+			mainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
+		end
+	end)
+
+	local closeBtn = Instance.new("TextButton")
+	closeBtn.Name = "CloseButton"; closeBtn.Size = UDim2.new(0, 36, 0, 36)
+	closeBtn.Position = UDim2.new(1, -48, 0, 5); closeBtn.BackgroundColor3 = Color3.fromRGB(25, 28, 40)
+	closeBtn.BackgroundTransparency = 0.3; closeBtn.Text = "✕"
+	closeBtn.TextColor3 = Color3.fromRGB(230, 235, 250); closeBtn.TextSize = 15
+	closeBtn.Font = Enum.Font.GothamBold; closeBtn.ZIndex = 5; closeBtn.Parent = topBar
+	local closeCorner = Instance.new("UICorner"); closeCorner.CornerRadius = UDim.new(0, 12); closeCorner.Parent = closeBtn
+	local closeStroke = Instance.new("UIStroke"); closeStroke.Color = Color3.fromRGB(255, 90, 90); closeStroke.Thickness = 1.5; closeStroke.Transparency = 0.4; closeStroke.Parent = closeBtn
+	closeBtn.MouseEnter:Connect(function()
+		TweenService:Create(closeBtn, TweenInfo.new(0.2), { BackgroundColor3 = Color3.fromRGB(220, 50, 70), BackgroundTransparency = 0.05, TextColor3 = Color3.fromRGB(255, 255, 255) }):Play()
+	end)
+	closeBtn.MouseLeave:Connect(function()
+		TweenService:Create(closeBtn, TweenInfo.new(0.2), { BackgroundColor3 = Color3.fromRGB(25, 28, 40), BackgroundTransparency = 0.3, TextColor3 = Color3.fromRGB(230, 235, 250) }):Play()
+	end)
+
+	local bgContainer = Instance.new("Folder"); bgContainer.Name = "DynamicBackground"; bgContainer.Parent = mainFrame
+	local bgElements = {}
+	local function clearBackground()
+		for _, el in ipairs(bgElements) do if el.Obj then el.Obj:Destroy() end end
+		bgElements = {}
+	end
+	local function generateBackground(mode)
+		clearBackground()
+		local count = (mode == "Stars") and 22 or 14
+		for i = 1, count do
+			local p = Instance.new("Frame")
+			local size = (mode == "Stars") and math.random(15, 35) or math.random(60, 140)
+			p.Size = UDim2.new(0, size, 0, size)
+			p.Position = UDim2.new(math.random(), 0, math.random(), 0)
+			p.BackgroundColor3 = Color3.fromRGB(math.random(80, 160), math.random(120, 230), math.random(220, 255))
+			p.BackgroundTransparency = 0.82; p.BorderSizePixel = 0
+			local corner = Instance.new("UICorner")
+			if mode == "Bubbles" then corner.CornerRadius = UDim.new(1, 0)
+			elseif mode == "Cubes" then corner.CornerRadius = UDim.new(0, 10)
+			else corner.CornerRadius = UDim.new(0.3, 0) end
+			corner.Parent = p; p.Parent = bgContainer
+			table.insert(bgElements, { Obj = p, SpeedX = math.random(-12, 12)/100, SpeedY = math.random(-12, 12)/100, RotSpeed = math.random(-25, 25) })
+		end
+	end
+	generateBackground("Bubbles")
+	RunService.RenderStepped:Connect(function(dt)
+		for _, data in ipairs(bgElements) do
+			if data.Obj and data.Obj.Parent then
+				local pos = data.Obj.Position
+				local nx = (pos.X.Scale + data.SpeedX * dt) % 1
+				local ny = (pos.Y.Scale + data.SpeedY * dt) % 1
+				data.Obj.Position = UDim2.new(nx, pos.X.Offset, ny, pos.Y.Offset)
+				data.Obj.Rotation = data.Obj.Rotation + (data.RotSpeed * dt)
+			end
+		end
+	end)
+
+	local sidebar = Instance.new("Frame")
+	sidebar.Size = UDim2.new(0, 210, 1, 0); sidebar.Position = UDim2.new(0, 0, 0, 0)
+	sidebar.BackgroundColor3 = Color3.fromRGB(8, 10, 16); sidebar.BackgroundTransparency = 0.3
+	sidebar.BorderSizePixel = 0; sidebar.Parent = mainFrame
+	local sideList = Instance.new("UIListLayout"); sideList.SortOrder = Enum.SortOrder.LayoutOrder; sideList.Padding = UDim.new(0, 6); sideList.Parent = sidebar
+	local sidePadding = Instance.new("UIPadding"); sidePadding.PaddingTop = UDim.new(0, 50); sidePadding.PaddingLeft = UDim.new(0, 12); sidePadding.PaddingRight = UDim.new(0, 12); sidePadding.Parent = sidebar
+
+	local brand = Instance.new("TextLabel")
+	brand.Size = UDim2.new(1, 0, 0, 35); brand.BackgroundTransparency = 1
+	brand.Text = L("Brand"); brand.TextColor3 = Color3.fromRGB(255, 255, 255)
+	brand.TextSize = 19; brand.Font = Enum.Font.GothamBold
+	brand.TextXAlignment = Enum.TextXAlignment.Left; brand.LayoutOrder = 0; brand.Parent = sidebar
+
+	local contentArea = Instance.new("Frame")
+	contentArea.Size = UDim2.new(1, -210, 1, 0); contentArea.Position = UDim2.new(0, 210, 0, 0)
+	contentArea.BackgroundTransparency = 1; contentArea.Parent = mainFrame
+
+	local pages = {
+		Home = Instance.new("ScrollingFrame"), ESP = Instance.new("ScrollingFrame"),
+		AutoFarm = Instance.new("ScrollingFrame"), SheriffTab = Instance.new("ScrollingFrame"),
+		MurderTab = Instance.new("ScrollingFrame"), TrollTab = Instance.new("ScrollingFrame"),
+		CrosshairTab = Instance.new("ScrollingFrame"), Themes = Instance.new("ScrollingFrame"),
+		Backgrounds = Instance.new("ScrollingFrame")
+	}
+	for name, page in pairs(pages) do
+		page.Name = name .. "Page"; page.Size = UDim2.new(1, 0, 1, 0)
+		page.BackgroundTransparency = 1; page.BorderSizePixel = 0
+		page.ScrollBarThickness = 3; page.CanvasSize = UDim2.new(0, 0, 0, 1400)
+		page.Visible = (name == "Home"); page.Parent = contentArea
+		local pad = Instance.new("UIPadding"); pad.PaddingTop = UDim.new(0, 28); pad.PaddingLeft = UDim.new(0, 25); pad.PaddingRight = UDim.new(0, 25); pad.Parent = page
+		local layout = Instance.new("UIListLayout"); layout.SortOrder = Enum.SortOrder.LayoutOrder; layout.Padding = UDim.new(0, 12); layout.Parent = page
+	end
+
+	local function createPageTitle(textKey, parentPage)
+		local title = Instance.new("TextLabel")
+		title.Name = "Title_" .. textKey; title.Size = UDim2.new(1, 0, 0, 35)
+		title.BackgroundTransparency = 1; title.Text = L(textKey)
+		title.TextColor3 = Color3.fromRGB(255, 255, 255); title.TextSize = 22
+		title.Font = Enum.Font.GothamBold; title.TextXAlignment = Enum.TextXAlignment.Left
+		title.LayoutOrder = 1; title.Parent = parentPage
+	end
+	for _, k in ipairs({"Home","ESP","AutoFarm","SheriffTab","MurderTab","TrollTab","CrosshairTab","Themes","Backgrounds"}) do
+		createPageTitle(k, pages[k])
+	end
+
+	local navButtons = {}
+	local function createNavButton(nameKey, targetPage, order)
+		local btn = Instance.new("TextButton")
+		btn.Name = "Nav_" .. nameKey; btn.Size = UDim2.new(1, 0, 0, 38)
+		btn.BackgroundColor3 = Color3.fromRGB(18, 22, 32); btn.BackgroundTransparency = 0.5
+		btn.Text = "   " .. L(nameKey); btn.TextColor3 = Color3.fromRGB(180, 185, 210)
+		btn.TextSize = 13; btn.Font = Enum.Font.GothamMedium
+		btn.TextXAlignment = Enum.TextXAlignment.Left; btn.LayoutOrder = order; btn.Parent = sidebar
+		local corner = Instance.new("UICorner"); corner.CornerRadius = UDim.new(0, 10); corner.Parent = btn
+		btn.MouseEnter:Connect(function()
+			TweenService:Create(btn, TweenInfo.new(0.2), { BackgroundColor3 = Color3.fromRGB(45, 55, 85), BackgroundTransparency = 0.2, TextColor3 = Color3.fromRGB(255, 255, 255) }):Play()
+		end)
+		btn.MouseLeave:Connect(function()
+			TweenService:Create(btn, TweenInfo.new(0.2), { BackgroundColor3 = Color3.fromRGB(18, 22, 32), BackgroundTransparency = 0.5, TextColor3 = Color3.fromRGB(180, 185, 210) }):Play()
+		end)
+		btn.MouseButton1Click:Connect(function()
+			playKeyboardSound()
+			for _, p in pairs(pages) do p.Visible = false end
+			targetPage.Visible = true
+		end)
+		navButtons[nameKey] = btn
+		return btn
+	end
+	createNavButton("Home", pages.Home, 1); createNavButton("ESP", pages.ESP, 2)
+	createNavButton("AutoFarm", pages.AutoFarm, 3); createNavButton("SheriffTab", pages.SheriffTab, 4)
+	createNavButton("MurderTab", pages.MurderTab, 5); createNavButton("TrollTab", pages.TrollTab, 6)
+	createNavButton("CrosshairTab", pages.CrosshairTab, 7); createNavButton("Themes", pages.Themes, 8)
+	createNavButton("Backgrounds", pages.Backgrounds, 9)
+
+	-- Profile card
+	local profileCard = Instance.new("Frame")
+	profileCard.Size = UDim2.new(1, 0, 0, 110); profileCard.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	profileCard.BorderSizePixel = 0; profileCard.LayoutOrder = 2; profileCard.Parent = pages.Home
+	local profileCorner = Instance.new("UICorner"); profileCorner.CornerRadius = UDim.new(0, 14); profileCorner.Parent = profileCard
+	local profileStroke = Instance.new("UIStroke"); profileStroke.Color = Color3.fromRGB(50, 60, 90); profileStroke.Thickness = 1.2; profileStroke.Transparency = 0.5; profileStroke.Parent = profileCard
+	local avatarImg = Instance.new("ImageLabel")
+	avatarImg.Size = UDim2.new(0, 72, 0, 72); avatarImg.Position = UDim2.new(0, 16, 0.5, -36)
+	avatarImg.BackgroundColor3 = Color3.fromRGB(30, 35, 50); avatarImg.BorderSizePixel = 0
+	avatarImg.Image = "rbxassetid://0"; avatarImg.Parent = profileCard
+	local avatarCorner = Instance.new("UICorner"); avatarCorner.CornerRadius = UDim.new(1, 0); avatarCorner.Parent = avatarImg
+	task.spawn(function()
+		local success, content = pcall(function()
+			return Players:GetUserThumbnailAsync(localPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+		end)
+		if success then avatarImg.Image = content end
+	end)
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size = UDim2.new(1, -110, 0, 28); nameLabel.Position = UDim2.new(0, 102, 0, 16)
+	nameLabel.BackgroundTransparency = 1; nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.TextSize = 16; nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left; nameLabel.Text = L("User") .. localPlayer.Name; nameLabel.Parent = profileCard
+	local pseudoLabel = Instance.new("TextLabel")
+	pseudoLabel.Size = UDim2.new(1, -110, 0, 24); pseudoLabel.Position = UDim2.new(0, 102, 0, 44)
+	pseudoLabel.BackgroundTransparency = 1; pseudoLabel.Font = Enum.Font.GothamMedium
+	pseudoLabel.TextSize = 13; pseudoLabel.TextColor3 = Color3.fromRGB(180, 185, 210)
+	pseudoLabel.TextXAlignment = Enum.TextXAlignment.Left; pseudoLabel.Text = L("Pseudo") .. localPlayer.DisplayName; pseudoLabel.Parent = profileCard
+	local statsLabel = Instance.new("TextLabel")
+	statsLabel.Size = UDim2.new(1, -110, 0, 24); statsLabel.Position = UDim2.new(0, 102, 0, 70)
+	statsLabel.BackgroundTransparency = 1; statsLabel.Font = Enum.Font.GothamSemibold
+	statsLabel.TextSize = 13; statsLabel.TextColor3 = Color3.fromRGB(90, 240, 140)
+	statsLabel.TextXAlignment = Enum.TextXAlignment.Left; statsLabel.Text = "FPS : 60 | Ping : 0 ms"; statsLabel.Parent = profileCard
+	local fpsCounter = 60; local lastTick = tick()
+	RunService.RenderStepped:Connect(function()
+		local currentTick = tick()
+		if currentTick - lastTick > 0 then fpsCounter = math.floor(1 / (currentTick - lastTick)) end
+		lastTick = currentTick
+		local pingVal = 0
+		pcall(function() pingVal = math.floor(localPlayer:GetNetworkPing() * 1000) end)
+		statsLabel.Text = string.format("FPS : %d | Ping : %d ms", fpsCounter, pingVal)
+	end)
+
+	-- Language card
+	local langCard = Instance.new("Frame")
+	langCard.Size = UDim2.new(1, 0, 0, 75); langCard.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	langCard.BorderSizePixel = 0; langCard.LayoutOrder = 3; langCard.Parent = pages.Home
+	local langCardCorner = Instance.new("UICorner"); langCardCorner.CornerRadius = UDim.new(0, 14); langCardCorner.Parent = langCard
+	local langCardStroke = Instance.new("UIStroke"); langCardStroke.Color = Color3.fromRGB(50, 60, 90); langCardStroke.Thickness = 1.2; langCardStroke.Transparency = 0.5; langCardStroke.Parent = langCard
+	local langToggleBtn = Instance.new("TextButton")
+	langToggleBtn.Size = UDim2.new(1, -24, 0, 45); langToggleBtn.Position = UDim2.new(0, 12, 0, 15)
+	langToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 36, 52); langToggleBtn.Text = L("LangToggle")
+	langToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255); langToggleBtn.TextSize = 14
+	langToggleBtn.Font = Enum.Font.GothamBold; langToggleBtn.Parent = langCard
+	local langCorner = Instance.new("UICorner"); langCorner.CornerRadius = UDim.new(0, 10); langCorner.Parent = langToggleBtn
+
+	local function updateInterfaceLanguage()
+		brand.Text = L("Brand")
+		nameLabel.Text = L("User") .. localPlayer.Name
+		pseudoLabel.Text = L("Pseudo") .. localPlayer.DisplayName
+		langToggleBtn.Text = L("LangToggle")
+		for name, page in pairs(pages) do
+			local titleLabel = page:FindFirstChild("Title_" .. name)
+			if titleLabel then titleLabel.Text = L(name) end
+		end
+		for key, btn in pairs(navButtons) do btn.Text = "   " .. L(key) end
+	end
+	langToggleBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		currentLanguage = (currentLanguage == "FR") and "EN" or "FR"
+		savedSettings.Language = currentLanguage
+		saveData(SAVE_FILE_NAME, savedSettings)
+		updateInterfaceLanguage()
+	end)
+
+	-- Murder chance card
+	local chanceCard = Instance.new("Frame")
+	chanceCard.Size = UDim2.new(1, 0, 0, 110); chanceCard.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	chanceCard.BorderSizePixel = 0; chanceCard.LayoutOrder = 4; chanceCard.Parent = pages.Home
+	local chanceCorner = Instance.new("UICorner"); chanceCorner.CornerRadius = UDim.new(0, 14); chanceCorner.Parent = chanceCard
+	local chanceStroke = Instance.new("UIStroke"); chanceStroke.Color = Color3.fromRGB(50, 60, 90); chanceStroke.Thickness = 1.2; chanceStroke.Transparency = 0.5; chanceStroke.Parent = chanceCard
+	local chanceTitle = Instance.new("TextLabel")
+	chanceTitle.Size = UDim2.new(1, -20, 0, 25); chanceTitle.Position = UDim2.new(0, 12, 0, 10)
+	chanceTitle.BackgroundTransparency = 1; chanceTitle.Font = Enum.Font.GothamBold
+	chanceTitle.TextSize = 14; chanceTitle.TextColor3 = Color3.fromRGB(255, 120, 120)
+	chanceTitle.TextXAlignment = Enum.TextXAlignment.Left; chanceTitle.Text = L("MurderChance"); chanceTitle.Parent = chanceCard
+	local chanceValueLabel = Instance.new("TextLabel")
+	chanceValueLabel.Size = UDim2.new(1, -20, 0, 30); chanceValueLabel.Position = UDim2.new(0, 12, 0, 35)
+	chanceValueLabel.BackgroundTransparency = 1; chanceValueLabel.Font = Enum.Font.GothamBold
+	chanceValueLabel.TextSize = 16; chanceValueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	chanceValueLabel.TextXAlignment = Enum.TextXAlignment.Left; chanceValueLabel.Text = L("StatusDisabled"); chanceValueLabel.Parent = chanceCard
+	local chanceToggleBtn = Instance.new("TextButton")
+	chanceToggleBtn.Size = UDim2.new(0, 160, 0, 32); chanceToggleBtn.Position = UDim2.new(0, 12, 0, 70)
+	chanceToggleBtn.BackgroundColor3 = Color3.fromRGB(35, 42, 60); chanceToggleBtn.Text = L("Enable")
+	chanceToggleBtn.TextColor3 = Color3.fromRGB(90, 255, 90); chanceToggleBtn.TextSize = 13
+	chanceToggleBtn.Font = Enum.Font.GothamBold; chanceToggleBtn.Parent = chanceCard
+	local chanceToggleCorner = Instance.new("UICorner"); chanceToggleCorner.CornerRadius = UDim.new(0, 8); chanceToggleCorner.Parent = chanceToggleBtn
+	local showMurderChance = savedSettings.ShowMurderChance or false
+	if showMurderChance then
+		chanceToggleBtn.Text = L("DisableRefuse"); chanceToggleBtn.TextColor3 = Color3.fromRGB(255, 90, 90)
+	end
+	chanceToggleBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		showMurderChance = not showMurderChance
+		savedSettings.ShowMurderChance = showMurderChance
+		saveData(SAVE_FILE_NAME, savedSettings)
+		if showMurderChance then
+			chanceToggleBtn.Text = L("DisableRefuse"); chanceToggleBtn.TextColor3 = Color3.fromRGB(255, 90, 90)
+		else
+			chanceToggleBtn.Text = L("Enable"); chanceToggleBtn.TextColor3 = Color3.fromRGB(90, 255, 90)
+			chanceValueLabel.Text = L("StatusDisabled")
+		end
+	end)
+	task.spawn(function()
+		while true do
+			if showMurderChance then
+				pcall(function()
+					local playersList = Players:GetPlayers(); local totalPlayers = #playersList
+					if totalPlayers <= 1 then chanceValueLabel.Text = L("AloneServer")
+					else
+						local chance = (1/totalPlayers)*100
+						chanceValueLabel.Text = string.format(L("ChanceRound"), chance, totalPlayers)
+					end
+				end)
+			end
+			task.wait(3)
+		end
+	end)
+
+	-- ESP
+	local espEnabled = savedSettings.EspEnabled or false
+	local espToggleBtn = Instance.new("TextButton")
+	espToggleBtn.Size = UDim2.new(1, 0, 0, 50); espToggleBtn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	espToggleBtn.Text = L("EspMm2") .. (espEnabled and "ON" or "OFF")
+	espToggleBtn.TextColor3 = espEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+	espToggleBtn.TextSize = 14; espToggleBtn.Font = Enum.Font.GothamSemibold
+	espToggleBtn.TextXAlignment = Enum.TextXAlignment.Left; espToggleBtn.LayoutOrder = 2; espToggleBtn.Parent = pages.ESP
+	local espCorner = Instance.new("UICorner"); espCorner.CornerRadius = UDim.new(0, 14); espCorner.Parent = espToggleBtn
+	local espStroke = Instance.new("UIStroke"); espStroke.Color = Color3.fromRGB(50, 60, 90); espStroke.Thickness = 1.2; espStroke.Transparency = 0.5; espStroke.Parent = espToggleBtn
+
+	local espData = {}
+	local function removeESP(plr)
+		if espData[plr] then
+			if espData[plr].Highlight and espData[plr].Highlight.Parent then espData[plr].Highlight:Destroy() end
+			if espData[plr].Billboard and espData[plr].Billboard.Parent then espData[plr].Billboard:Destroy() end
+			espData[plr] = nil
+		end
+	end
+	local function updateESPForPlayer(plr)
+		if not espEnabled then removeESP(plr) return end
+		if plr == localPlayer then return end
+		local char = plr.Character
+		if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChildOfClass("Humanoid") or char:FindFirstChildOfClass("Humanoid").Health <= 0 then
+			removeESP(plr); return
+		end
+		local rootPart = char.HumanoidRootPart
+		local head = char:FindFirstChild("Head") or rootPart
+		local role = "Innocent"
+		local function checkContainer(container)
+			if not container then return end
+			for _, item in ipairs(container:GetChildren()) do
+				if item:IsA("Tool") then
+					local name = item.Name:lower()
+					if name == "knife" or name:find("couteau") then role = "Murderer"
+					elseif name == "gun" or name == "revolver" or name:find("pistolet") then role = "Sheriff" end
+				end
+			end
+		end
+		checkContainer(plr:FindFirstChild("Backpack")); checkContainer(char)
+		local data = espData[plr]
+		if not data or not data.Highlight or not data.Highlight.Parent or not data.Billboard or not data.Billboard.Parent or data.Character ~= char then
+			removeESP(plr); data = {}; data.Character = char
+			local highlight = Instance.new("Highlight")
+			highlight.Adornee = char; highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop; highlight.Parent = espFolder
+			data.Highlight = highlight
+			local billboard = Instance.new("BillboardGui")
+			billboard.Adornee = head; billboard.Size = UDim2.new(0, 220, 0, 60)
+			billboard.StudsOffset = Vector3.new(0, 2.8, 0); billboard.AlwaysOnTop = true; billboard.Parent = espFolder
+			local textLabel = Instance.new("TextLabel")
+			textLabel.Size = UDim2.new(1, 0, 1, 0); textLabel.BackgroundTransparency = 1
+			textLabel.TextSize = 13; textLabel.Font = Enum.Font.GothamBold
+			textLabel.TextStrokeTransparency = 0.2; textLabel.TextStrokeColor3 = Color3.fromRGB(10, 10, 15); textLabel.Parent = billboard
+			data.Billboard = billboard; data.TextLabel = textLabel; espData[plr] = data
+		else
+			data.Highlight.Adornee = char; data.Billboard.Adornee = head
+		end
+		local distance = 0
+		if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+			distance = math.floor((localPlayer.Character.HumanoidRootPart.Position - rootPart.Position).Magnitude)
+		end
+		local color = Color3.fromRGB(90, 255, 140); local roleName = "Innocent"
+		if role == "Murderer" then color = Color3.fromRGB(255, 60, 60); roleName = "MURDERER"
+		elseif role == "Sheriff" then color = Color3.fromRGB(60, 160, 255); roleName = "SHERIFF" end
+		data.Highlight.FillColor = color; data.Highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+		data.Highlight.FillTransparency = (role == "Innocent") and 0.65 or 0.25
+		data.TextLabel.Text = string.format("[%s] %s\nDistance : %dm", roleName, plr.DisplayName, distance)
+		data.TextLabel.TextColor3 = color
+	end
+	espToggleBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		espEnabled = not espEnabled
+		savedSettings.EspEnabled = espEnabled; saveData(SAVE_FILE_NAME, savedSettings)
+		espToggleBtn.Text = L("EspMm2") .. (espEnabled and "ON" or "OFF")
+		espToggleBtn.TextColor3 = espEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+		if not espEnabled then for _, plr in ipairs(Players:GetPlayers()) do removeESP(plr) end end
+	end)
+	RunService.RenderStepped:Connect(function()
+		if espEnabled then for _, plr in ipairs(Players:GetPlayers()) do pcall(function() updateESPForPlayer(plr) end) end end
+	end)
+	Players.PlayerRemoving:Connect(function(plr) removeESP(plr) end)
+
+	-- NoClip
+	local noClipEnabled = savedSettings.NoClipEnabled or false
+	local noclipBtn = Instance.new("TextButton")
+	noclipBtn.Size = UDim2.new(1, 0, 0, 50); noclipBtn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	noclipBtn.Text = L("NoClip") .. (noClipEnabled and "ON" or "OFF")
+	noclipBtn.TextColor3 = noClipEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+	noclipBtn.TextSize = 14; noclipBtn.Font = Enum.Font.GothamSemibold
+	noclipBtn.TextXAlignment = Enum.TextXAlignment.Left; noclipBtn.LayoutOrder = 3; noclipBtn.Parent = pages.ESP
+	local noclipCorner = Instance.new("UICorner"); noclipCorner.CornerRadius = UDim.new(0, 14); noclipCorner.Parent = noclipBtn
+	local noclipStroke = Instance.new("UIStroke"); noclipStroke.Color = Color3.fromRGB(50, 60, 90); noclipStroke.Thickness = 1.2; noclipStroke.Transparency = 0.5; noclipStroke.Parent = noclipBtn
+	noclipBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		noClipEnabled = not noClipEnabled
+		savedSettings.NoClipEnabled = noClipEnabled; saveData(SAVE_FILE_NAME, savedSettings)
+		noclipBtn.Text = L("NoClip") .. (noClipEnabled and "ON" or "OFF")
+		noclipBtn.TextColor3 = noClipEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+	end)
+	RunService.Stepped:Connect(function()
+		if noClipEnabled and localPlayer.Character then
+			for _, part in ipairs(localPlayer.Character:GetDescendants()) do
+				if part:IsA("BasePart") then part.CanCollide = false end
+			end
+		end
+	end)
+
+	-- Infinite Jump
+	local infiniteJumpEnabled = savedSettings.InfiniteJumpEnabled or false
+	local infiniteJumpBtn = Instance.new("TextButton")
+	infiniteJumpBtn.Size = UDim2.new(1, 0, 0, 50); infiniteJumpBtn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	infiniteJumpBtn.Text = L("InfiniteJump") .. (infiniteJumpEnabled and "ON" or "OFF")
+	infiniteJumpBtn.TextColor3 = infiniteJumpEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+	infiniteJumpBtn.TextSize = 14; infiniteJumpBtn.Font = Enum.Font.GothamSemibold
+	infiniteJumpBtn.TextXAlignment = Enum.TextXAlignment.Left; infiniteJumpBtn.LayoutOrder = 4; infiniteJumpBtn.Parent = pages.ESP
+	local infJumpCorner = Instance.new("UICorner"); infJumpCorner.CornerRadius = UDim.new(0, 14); infJumpCorner.Parent = infiniteJumpBtn
+	local infJumpStroke = Instance.new("UIStroke"); infJumpStroke.Color = Color3.fromRGB(50, 60, 90); infJumpStroke.Thickness = 1.2; infJumpStroke.Transparency = 0.5; infJumpStroke.Parent = infiniteJumpBtn
+	infiniteJumpBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		infiniteJumpEnabled = not infiniteJumpEnabled
+		savedSettings.InfiniteJumpEnabled = infiniteJumpEnabled; saveData(SAVE_FILE_NAME, savedSettings)
+		infiniteJumpBtn.Text = L("InfiniteJump") .. (infiniteJumpEnabled and "ON" or "OFF")
+		infiniteJumpBtn.TextColor3 = infiniteJumpEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+	end)
+	UserInputService.JumpRequest:Connect(function()
+		if infiniteJumpEnabled then
+			local char = localPlayer.Character
+			if char then
+				local humanoid = char:FindFirstChildOfClass("Humanoid")
+				if humanoid then humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end
+			end
+		end
+	end)
+
+	-- AutoFarm
+	local autoFarmEnabled = savedSettings.AutoFarmEnabled or false
+	local autoFarmSpeed = savedSettings.AutoFarmSpeed or 70
+	local coinTransitSpeed = savedSettings.CoinTransitSpeed or 50
+	local autofarmBtn = Instance.new("TextButton")
+	autofarmBtn.Size = UDim2.new(1, 0, 0, 50); autofarmBtn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	autofarmBtn.Text = L("AutoFarmCoins") .. (autoFarmEnabled and "ON" or "OFF")
+	autofarmBtn.TextColor3 = autoFarmEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+	autofarmBtn.TextSize = 14; autofarmBtn.Font = Enum.Font.GothamSemibold
+	autofarmBtn.TextXAlignment = Enum.TextXAlignment.Left; autofarmBtn.LayoutOrder = 2; autofarmBtn.Parent = pages.AutoFarm
+	local autofarmCorner = Instance.new("UICorner"); autofarmCorner.CornerRadius = UDim.new(0, 14); autofarmCorner.Parent = autofarmBtn
+	local autofarmStroke = Instance.new("UIStroke"); autofarmStroke.Color = Color3.fromRGB(50, 60, 90); autofarmStroke.Thickness = 1.2; autofarmStroke.Transparency = 0.5; autofarmStroke.Parent = autofarmBtn
+	autofarmBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		autoFarmEnabled = not autoFarmEnabled
+		savedSettings.AutoFarmEnabled = autoFarmEnabled
+		noClipEnabled = autoFarmEnabled; savedSettings.NoClipEnabled = noClipEnabled
+		noclipBtn.Text = L("NoClip") .. (noClipEnabled and "ON" or "OFF")
+		noclipBtn.TextColor3 = noClipEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+		saveData(SAVE_FILE_NAME, savedSettings)
+		autofarmBtn.Text = L("AutoFarmCoins") .. (autoFarmEnabled and "ON" or "OFF")
+		autofarmBtn.TextColor3 = autoFarmEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(240, 240, 250)
+	end)
+
+	local function buildSpeedCard(parent, label, getVal, setVal, step, minVal, maxVal, hint, order)
+		local card = Instance.new("Frame")
+		card.Size = UDim2.new(1, 0, 0, 75); card.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+		card.BorderSizePixel = 0; card.LayoutOrder = order; card.Parent = parent
+		local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 14); c.Parent = card
+		local s = Instance.new("UIStroke"); s.Color = Color3.fromRGB(50, 60, 90); s.Thickness = 1.2; s.Transparency = 0.5; s.Parent = card
+		local lbl = Instance.new("TextLabel")
+		lbl.Size = UDim2.new(1, -20, 0, 25); lbl.Position = UDim2.new(0, 12, 0, 8)
+		lbl.BackgroundTransparency = 1; lbl.Font = Enum.Font.GothamBold; lbl.TextSize = 13
+		lbl.TextColor3 = Color3.fromRGB(200, 210, 240); lbl.TextXAlignment = Enum.TextXAlignment.Left
+		lbl.Text = label .. getVal(); lbl.Parent = card
+		local minus = Instance.new("TextButton")
+		minus.Size = UDim2.new(0, 38, 0, 32); minus.Position = UDim2.new(0, 12, 0, 35)
+		minus.BackgroundColor3 = Color3.fromRGB(30, 36, 52); minus.Text = "-"
+		minus.TextColor3 = Color3.fromRGB(255, 255, 255); minus.TextSize = 16; minus.Font = Enum.Font.GothamBold; minus.Parent = card
+		local mc = Instance.new("UICorner"); mc.CornerRadius = UDim.new(0, 8); mc.Parent = minus
+		local box = Instance.new("TextBox")
+		box.Size = UDim2.new(0, 65, 0, 32); box.Position = UDim2.new(0, 56, 0, 35)
+		box.BackgroundColor3 = Color3.fromRGB(24, 28, 42); box.Text = tostring(getVal())
+		box.TextColor3 = Color3.fromRGB(255, 255, 255); box.TextSize = 14
+		box.Font = Enum.Font.GothamBold; box.ClearTextOnFocus = false; box.Parent = card
+		local bc = Instance.new("UICorner"); bc.CornerRadius = UDim.new(0, 8); bc.Parent = box
+		local plus = Instance.new("TextButton")
+		plus.Size = UDim2.new(0, 38, 0, 32); plus.Position = UDim2.new(0, 127, 0, 35)
+		plus.BackgroundColor3 = Color3.fromRGB(30, 36, 52); plus.Text = "+"
+		plus.TextColor3 = Color3.fromRGB(255, 255, 255); plus.TextSize = 16; plus.Font = Enum.Font.GothamBold; plus.Parent = card
+		local pc = Instance.new("UICorner"); pc.CornerRadius = UDim.new(0, 8); pc.Parent = plus
+		local info = Instance.new("TextLabel")
+		info.Size = UDim2.new(1, -175, 0, 32); info.Position = UDim2.new(0, 172, 0, 35)
+		info.BackgroundTransparency = 1; info.Font = Enum.Font.GothamMedium; info.TextSize = 12
+		info.TextColor3 = Color3.fromRGB(150, 160, 185); info.TextXAlignment = Enum.TextXAlignment.Left
+		info.Text = hint; info.Parent = card
+		minus.MouseButton1Click:Connect(function()
+			playKeyboardSound(); setVal(math.clamp(getVal()-step, minVal, maxVal))
+			box.Text = tostring(getVal()); lbl.Text = label .. getVal()
+		end)
+		plus.MouseButton1Click:Connect(function()
+			playKeyboardSound(); setVal(math.clamp(getVal()+step, minVal, maxVal))
+			box.Text = tostring(getVal()); lbl.Text = label .. getVal()
+		end)
+		box.FocusLost:Connect(function()
+			local n = tonumber(box.Text)
+			if n then setVal(math.clamp(math.floor(n), minVal, maxVal)); box.Text = tostring(getVal()); lbl.Text = label .. getVal()
+			else box.Text = tostring(getVal()) end
+		end)
+		return card
+	end
+	buildSpeedCard(pages.AutoFarm, L("SpeedAutoFarm"),
+		function() return autoFarmSpeed end,
+		function(v) autoFarmSpeed = v; savedSettings.AutoFarmSpeed = v; saveData(SAVE_FILE_NAME, savedSettings) end,
+		25, 10, 500, L("SpeedAutoFarmHint"), 3)
+	buildSpeedCard(pages.AutoFarm, L("CoinTransitSpeed"),
+		function() return coinTransitSpeed end,
+		function(v) coinTransitSpeed = v; savedSettings.CoinTransitSpeed = v; saveData(SAVE_FILE_NAME, savedSettings) end,
+		10, 10, 500, L("TransitHint"), 4)
+
+	local function countTotalCoinsOnMap()
+		local count = 0
+		for _, obj in ipairs(Workspace:GetDescendants()) do
+			if obj:IsA("BasePart") then
+				local nl = obj.Name:lower()
+				if nl == "coin" or nl == "coins" or nl:find("coin") or nl:find("piece") or nl:find("pièce") then count = count + 1 end
+			end
+		end
+		return count
+	end
+	local function findNearestValidCoin()
+		local nearest = nil; local shortestDist = math.huge
+		local char = localPlayer.Character
+		if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+		local rootPos = char.HumanoidRootPart.Position
+		for _, obj in ipairs(Workspace:GetDescendants()) do
+			if obj:IsA("BasePart") and obj.Parent then
+				local nl = obj.Name:lower()
+				if nl == "coin" or nl == "coins" or nl:find("coin") or nl:find("piece") or nl:find("pièce") then
+					if obj.Transparency < 1 and obj.Size.Magnitude > 0 then
+						local d = (obj.Position - rootPos).Magnitude
+						if d < shortestDist then shortestDist = d; nearest = obj end
+					end
+				end
+			end
+		end
+		return nearest
+	end
+	task.spawn(function()
+		local waitingForNewRound = false
+		while true do
+			if autoFarmEnabled then
+				local char = localPlayer.Character
+				if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") then
+					local rootPart = char.HumanoidRootPart
+					local humanoid = char:FindFirstChildOfClass("Humanoid")
+					local totalCoins = countTotalCoinsOnMap()
+					if totalCoins == 0 then
+						if not waitingForNewRound then
+							waitingForNewRound = true
+							autofarmBtn.Text = L("WaitMap"); autofarmBtn.TextColor3 = Color3.fromRGB(255, 180, 50)
+						end
+						humanoid.PlatformStand = false; task.wait(0.5)
+					else
+						if waitingForNewRound then
+							waitingForNewRound = false
+							autofarmBtn.Text = L("AutoFarmCoins") .. "ON"; autofarmBtn.TextColor3 = Color3.fromRGB(90, 255, 90)
+						end
+						local coin = findNearestValidCoin()
+						if coin and coin.Parent and coin.Transparency < 1 then
+							humanoid.PlatformStand = true
+							local startTime = tick()
+							while autoFarmEnabled and coin and coin.Parent and coin.Transparency < 1 do
+								local targetPos = coin.Position + Vector3.new(0, 0.5, 0)
+								local distance = (rootPart.Position - targetPos).Magnitude
+								if distance < 1.5 then break end
+								if tick() - startTime > 1.5 then
+									rootPart.CFrame = rootPart.CFrame:Lerp(CFrame.new(targetPos), 0.3); break
+								end
+								local dt = RunService.RenderStepped:Wait()
+								local alpha = math.clamp((autoFarmSpeed * 0.7 * dt) / math.max(distance, 0.1), 0, 1)
+								local nextPos = rootPart.Position:Lerp(targetPos, alpha)
+								rootPart.CFrame = CFrame.new(nextPos)
+								rootPart.AssemblyLinearVelocity = Vector3.zero
+								rootPart.AssemblyAngularVelocity = Vector3.zero
+							end
+							if coin and coin.Parent then
+								rootPart.CFrame = CFrame.new(rootPart.Position:Lerp(coin.Position + Vector3.new(0, 0.5, 0), 0.5))
+							end
+							rootPart.AssemblyLinearVelocity = Vector3.zero
+							rootPart.AssemblyAngularVelocity = Vector3.zero
+							task.wait(0.05); humanoid.PlatformStand = false
+						else
+							humanoid.PlatformStand = false; task.wait(0.1)
+						end
+					end
+				else task.wait(0.5) end
+			else task.wait(0.2) end
+		end
+	end)
+
+	local function findPlayerByRole(targetRole)
+		for _, plr in ipairs(Players:GetPlayers()) do
+			if plr ~= localPlayer then
+				local char = plr.Character
+				local function checkContainer(container)
+					if not container then return false end
+					for _, item in ipairs(container:GetChildren()) do
+						if item:IsA("Tool") then
+							local name = item.Name:lower()
+							if targetRole == "Murderer" and (name == "knife" or name:find("couteau")) then return true
+							elseif targetRole == "Sheriff" and (name == "gun" or name == "revolver" or name:find("pistolet")) then return true end
+						end
+					end
+					return false
+				end
+				if checkContainer(plr.Backpack) or (char and checkContainer(char)) then return plr end
+			end
+		end
+		return nil
+	end
+	local function findSheriffPlayer() return findPlayerByRole("Sheriff") end
+	local function findMurdererPlayer() return findPlayerByRole("Murderer") end
+
+	local targetMurderTornado = false; local targetSheriffTornado = false; local tornadoSpeed = 3500
+	local function buildTornadoBtn(text, order, colorOff, onToggle)
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(1, 0, 0, 50); btn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+		btn.Text = text .. "OFF"; btn.TextColor3 = colorOff
+		btn.TextSize = 14; btn.Font = Enum.Font.GothamSemibold
+		btn.TextXAlignment = Enum.TextXAlignment.Left; btn.LayoutOrder = order; btn.Parent = pages.AutoFarm
+		local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 14); c.Parent = btn
+		local s = Instance.new("UIStroke"); s.Color = Color3.fromRGB(50, 60, 90); s.Thickness = 1.2; s.Transparency = 0.5; s.Parent = btn
+		btn.MouseButton1Click:Connect(function() playKeyboardSound(); onToggle(btn, colorOff) end)
+		return btn
+	end
+	local tornadoMurderBtn, tornadoSheriffBtn
+	tornadoMurderBtn = buildTornadoBtn(L("TargetMurder"), 5, Color3.fromRGB(255,90,90), function(btn, col)
+		targetMurderTornado = not targetMurderTornado
+		if targetMurderTornado then
+			targetSheriffTornado = false
+			tornadoSheriffBtn.Text = L("TargetSheriff") .. "OFF"
+			tornadoSheriffBtn.TextColor3 = Color3.fromRGB(60,160,255)
+			btn.Text = L("TargetMurder") .. "ON"; btn.TextColor3 = Color3.fromRGB(90,255,90)
+		else btn.Text = L("TargetMurder") .. "OFF"; btn.TextColor3 = col end
+	end)
+	tornadoSheriffBtn = buildTornadoBtn(L("TargetSheriff"), 6, Color3.fromRGB(60,160,255), function(btn, col)
+		targetSheriffTornado = not targetSheriffTornado
+		if targetSheriffTornado then
+			targetMurderTornado = false
+			tornadoMurderBtn.Text = L("TargetMurder") .. "OFF"
+			tornadoMurderBtn.TextColor3 = Color3.fromRGB(255,90,90)
+			btn.Text = L("TargetSheriff") .. "ON"; btn.TextColor3 = Color3.fromRGB(90,255,90)
+		else btn.Text = L("TargetSheriff") .. "OFF"; btn.TextColor3 = col end
+	end)
+	buildSpeedCard(pages.AutoFarm, L("TornadoSpeedLabel"),
+		function() return tornadoSpeed end, function(v) tornadoSpeed = v end,
+		500, 500, 10000, L("TornadoSpeedHint"), 7)
+
+	local instantKillAllEnabled = savedSettings.InstantKillAllEnabled or false
+	local instantKillBtn = Instance.new("TextButton")
+	instantKillBtn.Size = UDim2.new(1, 0, 0, 50); instantKillBtn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	instantKillBtn.Text = L("InstantKillAll") .. (instantKillAllEnabled and "ON" or "OFF")
+	instantKillBtn.TextColor3 = instantKillAllEnabled and Color3.fromRGB(90,255,90) or Color3.fromRGB(255,90,90)
+	instantKillBtn.TextSize = 14; instantKillBtn.Font = Enum.Font.GothamSemibold
+	instantKillBtn.TextXAlignment = Enum.TextXAlignment.Left; instantKillBtn.LayoutOrder = 2; instantKillBtn.Parent = pages.MurderTab
+	local ikc = Instance.new("UICorner"); ikc.CornerRadius = UDim.new(0, 14); ikc.Parent = instantKillBtn
+	local iks = Instance.new("UIStroke"); iks.Color = Color3.fromRGB(50, 60, 90); iks.Thickness = 1.2; iks.Transparency = 0.5; iks.Parent = instantKillBtn
+	instantKillBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		instantKillAllEnabled = not instantKillAllEnabled
+		savedSettings.InstantKillAllEnabled = instantKillAllEnabled; saveData(SAVE_FILE_NAME, savedSettings)
+		instantKillBtn.Text = L("InstantKillAll") .. (instantKillAllEnabled and "ON" or "OFF")
+		instantKillBtn.TextColor3 = instantKillAllEnabled and Color3.fromRGB(90,255,90) or Color3.fromRGB(255,90,90)
+	end)
+
+	RunService.RenderStepped:Connect(function(dt)
+		local targetPlr = nil
+		if targetMurderTornado then targetPlr = findPlayerByRole("Murderer")
+		elseif targetSheriffTornado then targetPlr = findPlayerByRole("Sheriff") end
+		if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") then
+			local tRoot = targetPlr.Character.HumanoidRootPart
+			local char = localPlayer.Character
+			local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+			if char and char:FindFirstChild("HumanoidRootPart") then
+				local myRoot = char.HumanoidRootPart
+				if humanoid then humanoid.PlatformStand = true end
+				local spinAngle = tick() * tornadoSpeed
+				local fixedHeightPos = tRoot.Position + Vector3.new(0, 10, 0)
+				local focusCFrame = CFrame.new(fixedHeightPos) * CFrame.Angles(0, spinAngle, 0) * CFrame.new(0, 0, 2) * CFrame.Angles(0, spinAngle * 3, 0)
+				myRoot.CFrame = focusCFrame
+				myRoot.AssemblyLinearVelocity = Vector3.zero
+				myRoot.AssemblyAngularVelocity = Vector3.zero
+			end
+		else
+			local char = localPlayer.Character
+			if char then
+				local humanoid = char:FindFirstChildOfClass("Humanoid")
+				if humanoid and humanoid.PlatformStand then humanoid.PlatformStand = false end
+			end
+		end
+		if instantKillAllEnabled then
+			pcall(function()
+				local char = localPlayer.Character
+				local tool = char and char:FindFirstChildOfClass("Tool")
+				local isHoldingKnife = false
+				if tool then
+					local name = tool.Name:lower()
+					if name == "knife" or name:find("couteau") then isHoldingKnife = true end
+				end
+				for _, plr in ipairs(Players:GetPlayers()) do
+					if plr ~= localPlayer and plr.Character and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+						local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+						if hrp then
+							if isHoldingKnife then
+								hrp.Size = Vector3.new(100, 100, 100)
+								hrp.CFrame = localPlayer.Character.HumanoidRootPart.CFrame
+								hrp.Transparency = 0.9; hrp.CanCollide = false
+								hrp.AssemblyLinearVelocity = Vector3.zero
+								hrp.AssemblyAngularVelocity = Vector3.zero
+							else
+								hrp.Size = Vector3.new(2, 2, 1); hrp.Transparency = 1; hrp.CanCollide = true
+							end
+						end
+					end
+				end
+			end)
+		end
+	end)
+
+	local function createMapTpButton(textKey, targetPosOffset, order)
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(1, 0, 0, 50); btn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+		btn.Text = L(textKey); btn.TextColor3 = Color3.fromRGB(240, 240, 250)
+		btn.TextSize = 14; btn.Font = Enum.Font.GothamSemibold
+		btn.TextXAlignment = Enum.TextXAlignment.Left; btn.LayoutOrder = order; btn.Parent = pages.TrollTab
+		local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 14); c.Parent = btn
+		local s = Instance.new("UIStroke"); s.Color = Color3.fromRGB(50, 60, 90); s.Thickness = 1.2; s.Transparency = 0.5; s.Parent = btn
+		btn.MouseButton1Click:Connect(function()
+			playKeyboardSound()
+			local char = localPlayer.Character
+			if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+			local foundPart = nil
+			for _, obj in ipairs(Workspace:GetDescendants()) do
+				if obj:IsA("BasePart") and (obj.Name:lower():find("spawn") or obj.Name:lower():find("lobby") or obj.Name:lower():find("floor")) then
+					if obj.Position.Y > -10 and obj.Position.Y < 500 then foundPart = obj; break end
+				end
+			end
+			if foundPart then char.HumanoidRootPart.CFrame = foundPart.CFrame + targetPosOffset
+			else char.HumanoidRootPart.CFrame = CFrame.new(0, 15, 0) + targetPosOffset end
+		end)
+		return btn
+	end
+	createMapTpButton("TpMapCenter", Vector3.new(0, 5, 0), 4)
+	createMapTpButton("TpRoof", Vector3.new(0, 45, 0), 5)
+
+	local tpSpawnBtn = Instance.new("TextButton")
+	tpSpawnBtn.Size = UDim2.new(1, 0, 0, 50); tpSpawnBtn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	tpSpawnBtn.Text = L("TpSpawn"); tpSpawnBtn.TextColor3 = Color3.fromRGB(255, 220, 100)
+	tpSpawnBtn.TextSize = 14; tpSpawnBtn.Font = Enum.Font.GothamSemibold
+	tpSpawnBtn.TextXAlignment = Enum.TextXAlignment.Left; tpSpawnBtn.LayoutOrder = 6; tpSpawnBtn.Parent = pages.TrollTab
+	local tsc = Instance.new("UICorner"); tsc.CornerRadius = UDim.new(0, 14); tsc.Parent = tpSpawnBtn
+	local tss = Instance.new("UIStroke"); tss.Color = Color3.fromRGB(50, 60, 90); tss.Thickness = 1.2; tss.Transparency = 0.5; tss.Parent = tpSpawnBtn
+	tpSpawnBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		local char = localPlayer.Character
+		if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+		local targetCF = CFrame.new(0, 10, 0)
+		for _, obj in ipairs(Workspace:GetDescendants()) do
+			if (obj:IsA("SpawnLocation") or obj.Name:lower():find("spawn")) and obj:IsA("BasePart") then
+				targetCF = obj.CFrame + Vector3.new(0, 4, 0); break
+			end
+		end
+		char.HumanoidRootPart.CFrame = targetCF
+	end)
+
+	local function buildTpPlayerBtn(textKey, findFn, order, color)
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(1, 0, 0, 50); btn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+		btn.Text = L(textKey); btn.TextColor3 = color
+		btn.TextSize = 14; btn.Font = Enum.Font.GothamSemibold
+		btn.TextXAlignment = Enum.TextXAlignment.Left; btn.LayoutOrder = order; btn.Parent = pages.TrollTab
+		local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 14); c.Parent = btn
+		local s = Instance.new("UIStroke"); s.Color = Color3.fromRGB(50, 60, 90); s.Thickness = 1.2; s.Transparency = 0.5; s.Parent = btn
+		btn.MouseButton1Click:Connect(function()
+			playKeyboardSound()
+			local char = localPlayer.Character
+			if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+			local p = findFn()
+			if p and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+				char.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
+			end
+		end)
+	end
+	buildTpPlayerBtn("TpSheriff", findSheriffPlayer, 2, Color3.fromRGB(60,160,255))
+	buildTpPlayerBtn("TpMurder", findMurdererPlayer, 3, Color3.fromRGB(255,60,60))
+
+	local animatedCrosshairEnabled = savedSettings.AnimatedCrosshairEnabled or false
+	local crosshairAnimSpeed = savedSettings.CrosshairAnimSpeed or 2
+	local crosshairColorIndex = savedSettings.CrosshairColorIndex or 1
+	local colorPresets = {
+		Color3.fromRGB(255, 100, 150), Color3.fromRGB(255, 215, 0),
+		Color3.fromRGB(0, 255, 200), Color3.fromRGB(150, 50, 255)
+	}
+	local animatedCrosshairGui = Instance.new("ScreenGui")
+	animatedCrosshairGui.Name = "AnimatedCrosshairGui"; animatedCrosshairGui.ResetOnSpawn = false
+	animatedCrosshairGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling; animatedCrosshairGui.Parent = playerGui
+	local crosshairMainFrame = Instance.new("Frame")
+	crosshairMainFrame.Name = "CrosshairMainFrame"; crosshairMainFrame.Size = UDim2.new(0, 140, 0, 140)
+	crosshairMainFrame.AnchorPoint = Vector2.new(0.5, 0.5); crosshairMainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+	crosshairMainFrame.BackgroundTransparency = 1; crosshairMainFrame.Visible = animatedCrosshairEnabled; crosshairMainFrame.Parent = animatedCrosshairGui
+	local heartElements = {}; local heartCount = 4
+	for i = 1, heartCount do
+		local heart = Instance.new("TextLabel")
+		heart.Size = UDim2.new(0, 28, 0, 28); heart.AnchorPoint = Vector2.new(0.5, 0.5)
+		heart.BackgroundTransparency = 1; heart.Text = "❤️"; heart.TextSize = 18
+		heart.Font = Enum.Font.GothamBold; heart.TextColor3 = colorPresets[crosshairColorIndex]; heart.Parent = crosshairMainFrame
+		table.insert(heartElements, heart)
+	end
+	local centerDot = Instance.new("Frame")
+	centerDot.Name = "CenterChromaDot"; centerDot.Size = UDim2.new(0, 8, 0, 8)
+	centerDot.AnchorPoint = Vector2.new(0.5, 0.5); centerDot.Position = UDim2.new(0.5, 0, 0.5, 0)
+	centerDot.BackgroundColor3 = Color3.fromRGB(255, 215, 0); centerDot.BorderSizePixel = 0; centerDot.ZIndex = 50; centerDot.Parent = crosshairMainFrame
+	local dotCorner = Instance.new("UICorner"); dotCorner.CornerRadius = UDim.new(1, 0); dotCorner.Parent = centerDot
+	local dotStroke = Instance.new("UIStroke"); dotStroke.Color = Color3.fromRGB(255, 255, 255); dotStroke.Thickness = 1.2; dotStroke.Parent = centerDot
+	RunService.RenderStepped:Connect(function()
+		if animatedCrosshairEnabled and crosshairMainFrame.Visible then
+			local t = tick() * crosshairAnimSpeed * 3
+			local pulse = 1 + math.sin(t * 2) * 0.25
+			local radius = 32 + math.sin(t * 1.5) * 10
+			for index, heartObj in ipairs(heartElements) do
+				local angle = ((index - 1) / heartCount) * (math.pi * 2) + (t * 0.8)
+				heartObj.Position = UDim2.new(0.5, math.cos(angle) * radius, 0.5, math.sin(angle) * radius)
+				heartObj.Rotation = (t * 45) + (index * 25)
+				heartObj.TextSize = math.clamp(16 * pulse, 12, 26)
+			end
+		end
+	end)
+
+	local crosshairToggleBtn = Instance.new("TextButton")
+	crosshairToggleBtn.Size = UDim2.new(1, 0, 0, 50); crosshairToggleBtn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	crosshairToggleBtn.Text = L("CrosshairEnable") .. (animatedCrosshairEnabled and "ON" or "OFF")
+	crosshairToggleBtn.TextColor3 = animatedCrosshairEnabled and Color3.fromRGB(90,255,90) or Color3.fromRGB(240,240,250)
+	crosshairToggleBtn.TextSize = 14; crosshairToggleBtn.Font = Enum.Font.GothamSemibold
+	crosshairToggleBtn.TextXAlignment = Enum.TextXAlignment.Left; crosshairToggleBtn.LayoutOrder = 2; crosshairToggleBtn.Parent = pages.CrosshairTab
+	local chCorner = Instance.new("UICorner"); chCorner.CornerRadius = UDim.new(0, 14); chCorner.Parent = crosshairToggleBtn
+	local chStroke = Instance.new("UIStroke"); chStroke.Color = Color3.fromRGB(50, 60, 90); chStroke.Thickness = 1.2; chStroke.Transparency = 0.5; chStroke.Parent = crosshairToggleBtn
+	crosshairToggleBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		animatedCrosshairEnabled = not animatedCrosshairEnabled
+		crosshairMainFrame.Visible = animatedCrosshairEnabled
+		savedSettings.AnimatedCrosshairEnabled = animatedCrosshairEnabled; saveData(SAVE_FILE_NAME, savedSettings)
+		crosshairToggleBtn.Text = L("CrosshairEnable") .. (animatedCrosshairEnabled and "ON" or "OFF")
+		crosshairToggleBtn.TextColor3 = animatedCrosshairEnabled and Color3.fromRGB(90,255,90) or Color3.fromRGB(240,240,250)
+	end)
+	buildSpeedCard(pages.CrosshairTab, L("CrosshairSpeed"),
+		function() return crosshairAnimSpeed end,
+		function(v) crosshairAnimSpeed = v; savedSettings.CrosshairAnimSpeed = v; saveData(SAVE_FILE_NAME, savedSettings) end,
+		1, 1, 10, "(Animations de plus en plus rapides)", 3)
+
+	local chColorCard = Instance.new("TextButton")
+	chColorCard.Size = UDim2.new(1, 0, 0, 50); chColorCard.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+	chColorCard.Text = L("CrosshairColor"); chColorCard.TextColor3 = Color3.fromRGB(255, 215, 0)
+	chColorCard.TextSize = 14; chColorCard.Font = Enum.Font.GothamSemibold
+	chColorCard.TextXAlignment = Enum.TextXAlignment.Left; chColorCard.LayoutOrder = 4; chColorCard.Parent = pages.CrosshairTab
+	local chcCorner = Instance.new("UICorner"); chcCorner.CornerRadius = UDim.new(0, 14); chcCorner.Parent = chColorCard
+	local chcStroke = Instance.new("UIStroke"); chcStroke.Color = Color3.fromRGB(50, 60, 90); chcStroke.Thickness = 1.2; chcStroke.Transparency = 0.5; chcStroke.Parent = chColorCard
+	chColorCard.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		crosshairColorIndex = (crosshairColorIndex % #colorPresets) + 1
+		local newCol = colorPresets[crosshairColorIndex]
+		for _, h in ipairs(heartElements) do h.TextColor3 = newCol end
+		savedSettings.CrosshairColorIndex = crosshairColorIndex; saveData(SAVE_FILE_NAME, savedSettings)
+	end)
+
+	local anglaisSheriffEnabled = savedSettings.AnglaisSheriffEnabled or false
+	local sheriffAimlockEnabled = savedSettings.SheriffAimlockEnabled or false
+	local sheriffSilentAimEnabled = savedSettings.SheriffSilentAimEnabled or false
+	local autoShootMurderEnabled = savedSettings.AutoShootMurderEnabled or false
+	local autoGrabGunEnabled = savedSettings.AutoGrabGunEnabled or false
+	local function createSheriffFeatureButton(textKey, order, color3, settingKey, getStateFunc, setStateFunc, customCallback)
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(1, 0, 0, 50); btn.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+		local initialState = getStateFunc()
+		btn.Text = L(textKey) .. (initialState and "ON" or "OFF")
+		btn.TextColor3 = initialState and Color3.fromRGB(90,255,90) or color3
+		btn.TextSize = 14; btn.Font = Enum.Font.GothamSemibold
+		btn.TextXAlignment = Enum.TextXAlignment.Left; btn.LayoutOrder = order; btn.Parent = pages.SheriffTab
+		local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 14); c.Parent = btn
+		local s = Instance.new("UIStroke"); s.Color = Color3.fromRGB(50, 60, 90); s.Thickness = 1.2; s.Transparency = 0.5; s.Parent = btn
+		btn.MouseButton1Click:Connect(function()
+			playKeyboardSound()
+			local newState = not getStateFunc()
+			setStateFunc(newState)
+			savedSettings[settingKey] = newState; saveData(SAVE_FILE_NAME, savedSettings)
+			btn.Text = L(textKey) .. (newState and "ON" or "OFF")
+			btn.TextColor3 = newState and Color3.fromRGB(90,255,90) or color3
+			if customCallback then customCallback(newState) end
+		end)
+		return btn
+	end
+	createSheriffFeatureButton("EnglishSheriff", 2, Color3.fromRGB(60,160,255), "AnglaisSheriffEnabled",
+		function() return anglaisSheriffEnabled end, function(v) anglaisSheriffEnabled = v end)
+	createSheriffFeatureButton("SheriffAimlock", 3, Color3.fromRGB(255,120,120), "SheriffAimlockEnabled",
+		function() return sheriffAimlockEnabled end, function(v) sheriffAimlockEnabled = v end,
+		function(s) toggleAimlockFloatingPanel(s); if s then enableNativeShiftLock() end end)
+	createSheriffFeatureButton("SheriffSilentAim", 4, Color3.fromRGB(255,200,80), "SheriffSilentAimEnabled",
+		function() return sheriffSilentAimEnabled end, function(v) sheriffSilentAimEnabled = v end)
+	createSheriffFeatureButton("AutoShootMurder", 5, Color3.fromRGB(255,90,90), "AutoShootMurderEnabled",
+		function() return autoShootMurderEnabled end, function(v) autoShootMurderEnabled = v end)
+	createSheriffFeatureButton("AutoGrabGun", 6, Color3.fromRGB(90,255,180), "AutoGrabGunEnabled",
+		function() return autoGrabGunEnabled end, function(v) autoGrabGunEnabled = v end)
+
+	if sheriffAimlockEnabled then toggleAimlockFloatingPanel(true); enableNativeShiftLock() end
+
+	local sheriffCrosshairGui = Instance.new("ScreenGui")
+	sheriffCrosshairGui.Name = "SheriffCrosshairGui"; sheriffCrosshairGui.ResetOnSpawn = false; sheriffCrosshairGui.Parent = playerGui
+	local headCrosshair = Instance.new("Frame")
+	headCrosshair.Size = UDim2.new(0, 100, 0, 100); headCrosshair.AnchorPoint = Vector2.new(0.5, 0.5)
+	headCrosshair.Position = UDim2.new(0.5, 0, 0.5, 0); headCrosshair.BackgroundTransparency = 1
+	headCrosshair.Visible = false; headCrosshair.Parent = sheriffCrosshairGui
+	for i = 1, 4 do
+		local bar = Instance.new("Frame")
+		bar.Size = UDim2.new(0, 20, 0, 4); bar.Position = UDim2.new(0.5, -10, 0.5, -2)
+		bar.BackgroundColor3 = Color3.fromRGB(255, 50, 50); bar.BorderSizePixel = 0
+		bar.Rotation = (i - 1) * 90
+		local cB = Instance.new("UICorner"); cB.CornerRadius = UDim.new(1, 0); cB.Parent = bar
+		bar.Parent = headCrosshair
+	end
+
+	local function getTargetHitPosition(targetChar, dt)
+		local head = targetChar:FindFirstChild("Head")
+		local upperTorso = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso")
+		local rootPart = targetChar:FindFirstChild("HumanoidRootPart")
+		local humanoid = targetChar:FindFirstChildOfClass("Humanoid")
+		if not rootPart then return nil end
+		if humanoid and humanoid.Health <= 0 then return nil end
+		local baseTargetPos
+		if head then baseTargetPos = head.Position
+		elseif upperTorso then baseTargetPos = upperTorso.Position + Vector3.new(0, 1, 0)
+		else baseTargetPos = rootPart.Position + Vector3.new(0, 1.5, 0) end
+
+		local ping = 0.05
+		pcall(function() ping = localPlayer:GetNetworkPing() * 2 + 0.035 end)
+		ping = math.clamp(ping, 0.02, 0.35)
+
+		local vel = rootPart.AssemblyLinearVelocity
+		local horizontal = Vector3.new(vel.X, 0, vel.Z) * ping
+		local verticalY = vel.Y * ping
+
+		local inAir = false
+		if humanoid then
+			local st = humanoid:GetState()
+			inAir = (st == Enum.HumanoidStateType.Jumping
+				or st == Enum.HumanoidStateType.Freefall
+				or st == Enum.HumanoidStateType.FallingDown)
+				or humanoid.FloorMaterial == Enum.Material.Air
+		end
+		if inAir then verticalY = verticalY - (0.5 * Workspace.Gravity * ping * ping) end
+
+		return baseTargetPos + horizontal + Vector3.new(0, verticalY + 0.1, 0)
+	end
+
+	local function hasLineOfSight(targetPos, targetChar)
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		local ignore = { Camera }
+		if localPlayer.Character then table.insert(ignore, localPlayer.Character) end
+		params.FilterDescendantsInstances = ignore
+		local origin = Camera.CFrame.Position
+		local result = Workspace:Raycast(origin, targetPos - origin, params)
+		if not result then return true end
+		return result.Instance:IsDescendantOf(targetChar)
+	end
+
+	local silentAimCache = { pos = nil, char = nil }
+	local lastKnownSheriffPos = nil
+	local wasSheriffAlive = false
+	
+	RunService.RenderStepped:Connect(function(dt)
+		if headCrosshair.Visible then headCrosshair.Rotation = headCrosshair.Rotation + (90 * dt) end
+
+		if anglaisSheriffEnabled then
+			local char = localPlayer.Character
+			local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+			local backpack = localPlayer:FindFirstChild("Backpack")
+			if char and humanoid then
+				local hasGunEquipped = false
+				for _, item in ipairs(char:GetChildren()) do
+					if item:IsA("Tool") then
+						local n = item.Name:lower()
+						if n == "gun" or n == "revolver" or n:find("pistolet") then hasGunEquipped = true; break end
+					end
+				end
+				if not hasGunEquipped and backpack then
+					for _, item in ipairs(backpack:GetChildren()) do
+						if item:IsA("Tool") then
+							local n = item.Name:lower()
+							if n == "gun" or n == "revolver" or n:find("pistolet") then humanoid:EquipTool(item); break end
+						end
+					end
+				end
+			end
+		end
+
+		if autoGrabGunEnabled then
+			pcall(function()
+				local char = localPlayer.Character
+				if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") then
+					local hrp = char.HumanoidRootPart
+					local currentSheriff = findSheriffPlayer()
+					if currentSheriff and currentSheriff.Character and currentSheriff.Character:FindFirstChild("HumanoidRootPart") then
+						wasSheriffAlive = true
+						lastKnownSheriffPos = currentSheriff.Character.HumanoidRootPart.CFrame
+					else
+						if wasSheriffAlive then
+							wasSheriffAlive = false
+							local originalPos = hrp.CFrame; local droppedGun = nil
+							for _, obj in ipairs(Workspace:GetChildren()) do
+								if obj:IsA("BackpackItem") or obj:IsA("Tool") then
+									local nl = obj.Name:lower()
+									if nl == "gun" or nl == "revolver" or nl:find("pistolet") or nl:find("droppedgun") then droppedGun = obj; break end
+								end
+							end
+							if droppedGun and droppedGun:FindFirstChild("Handle") then
+								hrp.CFrame = droppedGun.Handle.CFrame + Vector3.new(0, 0.5, 0)
+							elseif lastKnownSheriffPos then
+								hrp.CFrame = lastKnownSheriffPos + Vector3.new(0, 0.5, 0)
+							end
+							task.wait(0.08); hrp.CFrame = originalPos
+						end
+					end
+					for _, obj in ipairs(Workspace:GetChildren()) do
+						if obj:IsA("BackpackItem") or obj:IsA("Tool") then
+							local nl = obj.Name:lower()
+							if nl == "gun" or nl == "revolver" or nl:find("pistolet") or nl:find("droppedgun") then
+								local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildWhichIsA("BasePart")
+								if handle and handle.Parent then
+									local originalPos = hrp.CFrame
+									hrp.CFrame = handle.CFrame + Vector3.new(0, 0.5, 0)
+									task.wait(0.08); hrp.CFrame = originalPos; break
+								end
+							end
+						end
+					end
+				end
+			end)
+		end
+
+		if autoShootMurderEnabled then
+			pcall(function()
+				local char = localPlayer.Character
+				if not char then return end
+				local tool = char:FindFirstChildOfClass("Tool")
+				if not tool then return end
+				local n = tool.Name:lower()
+				if not (n == "gun" or n == "revolver" or n:find("pistolet")) then return end
+				local murderPlr = findMurdererPlayer()
+				if not (murderPlr and murderPlr.Character) then return end
+				local targetPos = getTargetHitPosition(murderPlr.Character, dt)
+				if not targetPos then return end
+				local canShoot = hasLineOfSight(targetPos, murderPlr.Character)
+				Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPos)
+				if canShoot then tool:Activate() end
+			end)
+		end
+
+		local murderPlr = findMurdererPlayer()
+		if murderPlr and murderPlr.Character and murderPlr.Character:FindFirstChild("HumanoidRootPart") then
+			local preciseTargetPos = getTargetHitPosition(murderPlr.Character, dt)
+			if preciseTargetPos and sheriffAimlockEnabled and floatActiveState then
+				headCrosshair.Visible = true
+				Camera.CFrame = CFrame.new(Camera.CFrame.Position, preciseTargetPos)
+			else
+				headCrosshair.Visible = false
+			end
+		else
+			headCrosshair.Visible = false
+		end
+
+		if sheriffSilentAimEnabled and floatActiveState then
+			if murderPlr and murderPlr.Character then
+				local p = getTargetHitPosition(murderPlr.Character, dt)
+				if p then silentAimCache.pos = p; silentAimCache.char = murderPlr.Character end
+			end
+		else
+			silentAimCache.pos = nil
+		end
+	end)
+
+	pcall(function()
+		local oldNamecall
+		oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+			local method = getnamecallmethod()
+			if sheriffSilentAimEnabled and floatActiveState and silentAimCache.pos
+			   and (method == "FireServer" or method == "InvokeServer")
+			   and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction")) then
+				local args = { ... }
+				local replaced = false
+				for i, v in ipairs(args) do
+					if typeof(v) == "Vector3" then
+						args[i] = silentAimCache.pos; replaced = true
+					elseif typeof(v) == "CFrame" then
+						args[i] = CFrame.new(silentAimCache.pos); replaced = true
+					end
+				end
+				if replaced then return oldNamecall(self, unpack(args)) end
+			end
+			return oldNamecall(self, ...)
+		end))
+		local oldIndex
+		oldIndex = hookmetamethod(game, "__index", newcclosure(function(self, key)
+			if sheriffSilentAimEnabled and floatActiveState and silentAimCache.pos then
+				if typeof(self) == "Instance" and (self:IsA("Mouse") or self:IsA("PlayerMouse")) then
+					if key == "Hit" then return CFrame.new(silentAimCache.pos)
+					elseif key == "Target" and silentAimCache.char then
+						return silentAimCache.char:FindFirstChild("Head")
+					end
+				end
+			end
+			return oldIndex(self, key)
+		end))
+	end)
+
+	local function createThemeOption(themeKey, bgColor, order)
+		local card = Instance.new("TextButton")
+		card.Size = UDim2.new(1, 0, 0, 54); card.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+		card.Text = "   " .. L(themeKey); card.TextColor3 = Color3.fromRGB(240, 240, 250)
+		card.TextSize = 15; card.Font = Enum.Font.GothamSemibold
+		card.TextXAlignment = Enum.TextXAlignment.Left; card.LayoutOrder = order; card.Parent = pages.Themes
+		local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 14); c.Parent = card
+		local s = Instance.new("UIStroke"); s.Color = Color3.fromRGB(50, 60, 90); s.Thickness = 1.2; s.Transparency = 0.5; s.Parent = card
+		card.MouseButton1Click:Connect(function()
+			playKeyboardSound()
+			TweenService:Create(mainFrame, TweenInfo.new(0.4), { BackgroundColor3 = bgColor }):Play()
+			TweenService:Create(sidebar, TweenInfo.new(0.4), { BackgroundColor3 = Color3.new(bgColor.R*0.7, bgColor.G*0.7, bgColor.B*0.7) }):Play()
+		end)
+	end
+	createThemeOption("ThemeCyber", Color3.fromRGB(10, 14, 26), 2)
+	createThemeOption("ThemeNeon", Color3.fromRGB(20, 10, 28), 3)
+	createThemeOption("ThemeEmerald", Color3.fromRGB(8, 20, 14), 4)
+	createThemeOption("ThemeObsidian", Color3.fromRGB(8, 8, 10), 5)
+
+	local function createBgStyleOption(styleKey, modeKey, order)
+		local card = Instance.new("TextButton")
+		card.Size = UDim2.new(1, 0, 0, 54); card.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+		card.Text = "   Style : " .. L(styleKey); card.TextColor3 = Color3.fromRGB(240, 240, 250)
+		card.TextSize = 15; card.Font = Enum.Font.GothamSemibold
+		card.TextXAlignment = Enum.TextXAlignment.Left; card.LayoutOrder = order; card.Parent = pages.Backgrounds
+		local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 14); c.Parent = card
+		local s = Instance.new("UIStroke"); s.Color = Color3.fromRGB(50, 60, 90); s.Thickness = 1.2; s.Transparency = 0.5; s.Parent = card
+		card.MouseButton1Click:Connect(function() playKeyboardSound(); generateBackground(modeKey) end)
+	end
+	createBgStyleOption("BgBubbles", "Bubbles", 2)
+	createBgStyleOption("BgCubes", "Cubes", 3)
+	createBgStyleOption("BgStars", "Stars", 4)
+
+	closeBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		for i = 1, 40 do
+			local bubble = Instance.new("Frame")
+			local size = math.random(15, 50)
+			bubble.Size = UDim2.new(0, size, 0, size)
+			bubble.Position = mainFrame.Position + UDim2.new(math.random(), -350, math.random(), -230)
+			bubble.BackgroundColor3 = Color3.fromRGB(math.random(100,180), math.random(180,255), 255)
+			bubble.BackgroundTransparency = 0.15; bubble.BorderSizePixel = 0; bubble.ZIndex = 25; bubble.Parent = screenGui
+			local bc = Instance.new("UICorner"); bc.CornerRadius = UDim.new(1, 0); bc.Parent = bubble
+			local tw = TweenService:Create(bubble, TweenInfo.new(0.35, Enum.EasingStyle.Exponential, Enum.EasingDirection.In), {
+				Position = UDim2.new(0.5, 0, 0, 38), Size = UDim2.new(0, 2, 0, 2), BackgroundTransparency = 1, Rotation = 540
+			})
+			tw:Play(); tw.Completed:Connect(function() bubble:Destroy() end)
+		end
+		TweenService:Create(mainCorner, TweenInfo.new(0.3), { CornerRadius = UDim.new(1, 0) }):Play()
+		local shrinkTween = TweenService:Create(mainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+			Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0, 38)
+		})
+		shrinkTween:Play()
+		shrinkTween.Completed:Connect(function()
+			mainFrame.Visible = false
+			miniButton.Size = UDim2.new(0, 0, 0, 0); miniButton.Visible = true
+			TweenService:Create(miniButton, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.new(0, 48, 0, 48) }):Play()
+		end)
+	end)
+	miniButton.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		local miniTween = TweenService:Create(miniButton, TweenInfo.new(0.15), { Size = UDim2.new(0, 0, 0, 0) })
+		miniTween:Play()
+		miniTween.Completed:Connect(function()
+			miniButton.Visible = false
+			mainFrame.Size = UDim2.new(0, 0, 0, 0); mainFrame.Position = UDim2.new(0.5, 0, 0, 38)
+			mainCorner.CornerRadius = UDim.new(1, 0); mainFrame.Visible = true
+			TweenService:Create(mainCorner, TweenInfo.new(0.4), { CornerRadius = UDim.new(0, 24) }):Play()
+			TweenService:Create(mainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+				Size = UDim2.new(0, 700, 0, 460), Position = UDim2.new(0.5, -350, 0.5, -230)
+			}):Play()
+		end)
+	end)
+	mainFrame.Size = UDim2.new(0, 0, 0, 0)
+	mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+	mainCorner.CornerRadius = UDim.new(1, 0)
+	TweenService:Create(mainCorner, TweenInfo.new(0.5), { CornerRadius = UDim.new(0, 24) }):Play()
+	TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Size = UDim2.new(0, 700, 0, 460), Position = UDim2.new(0.5, -350, 0.5, -230)
+	}):Play()
+end
+
+if savedKeyData and savedKeyData.KeyValid == true then
+	launchMainInterface()
+else
+	local keyGui = Instance.new("ScreenGui")
+	keyGui.Name = "PrimeKeySystemGui"; keyGui.ResetOnSpawn = false; keyGui.Parent = playerGui
+	local keyFrame = Instance.new("Frame")
+	keyFrame.Size = UDim2.new(0, 420, 0, 240); keyFrame.Position = UDim2.new(0.5, -210, 0.5, -120)
+	keyFrame.BackgroundColor3 = Color3.fromRGB(11, 13, 20); keyFrame.BorderSizePixel = 0; keyFrame.Parent = keyGui
+	local kCorner = Instance.new("UICorner"); kCorner.CornerRadius = UDim.new(0, 20); kCorner.Parent = keyFrame
+	local kStroke = Instance.new("UIStroke"); kStroke.Color = Color3.fromRGB(140, 150, 230); kStroke.Thickness = 2; kStroke.Transparency = 0.3; kStroke.Parent = keyFrame
+	keyFrame.Size = UDim2.new(0, 0, 0, 0); keyFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+	TweenService:Create(keyFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Size = UDim2.new(0, 420, 0, 240), Position = UDim2.new(0.5, -210, 0.5, -120)
+	}):Play()
+	local titleKey = Instance.new("TextLabel")
+	titleKey.Size = UDim2.new(1, 0, 0, 50); titleKey.Position = UDim2.new(0, 0, 0, 15)
+	titleKey.BackgroundTransparency = 1; titleKey.Text = "⚡ vbnx V2 — KEY"
+	titleKey.TextColor3 = Color3.fromRGB(255, 255, 255); titleKey.TextSize = 18
+	titleKey.Font = Enum.Font.GothamBold; titleKey.Parent = keyFrame
+	local subKey = Instance.new("TextLabel")
+	subKey.Size = UDim2.new(1, -40, 0, 30); subKey.Position = UDim2.new(0, 20, 0, 55)
+	subKey.BackgroundTransparency = 1; subKey.Text = "Entrez votre clé :"
+	subKey.TextColor3 = Color3.fromRGB(180, 185, 210); subKey.TextSize = 13
+	subKey.Font = Enum.Font.GothamMedium; subKey.Parent = keyFrame
+	local keyBox = Instance.new("TextBox")
+	keyBox.Size = UDim2.new(1, -50, 0, 48); keyBox.Position = UDim2.new(0, 25, 0, 95)
+	keyBox.BackgroundColor3 = Color3.fromRGB(18, 22, 32); keyBox.PlaceholderText = "Clé..."
+	keyBox.Text = ""; keyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	keyBox.PlaceholderColor3 = Color3.fromRGB(100, 110, 140)
+	keyBox.TextSize = 14; keyBox.Font = Enum.Font.GothamBold
+	keyBox.ClearTextOnFocus = false; keyBox.Parent = keyFrame
+	local boxCorner = Instance.new("UICorner"); boxCorner.CornerRadius = UDim.new(0, 12); boxCorner.Parent = keyBox
+	local boxStroke = Instance.new("UIStroke"); boxStroke.Color = Color3.fromRGB(60, 70, 100); boxStroke.Thickness = 1.5; boxStroke.Parent = keyBox
+	local submitBtn = Instance.new("TextButton")
+	submitBtn.Size = UDim2.new(1, -50, 0, 48); submitBtn.Position = UDim2.new(0, 25, 0, 160)
+	submitBtn.BackgroundColor3 = Color3.fromRGB(90, 110, 255); submitBtn.Text = "VALIDER"
+	submitBtn.TextColor3 = Color3.fromRGB(255, 255, 255); submitBtn.TextSize = 14
+	submitBtn.Font = Enum.Font.GothamBold; submitBtn.Parent = keyFrame
+	local subCorner = Instance.new("UICorner"); subCorner.CornerRadius = UDim.new(0, 12); subCorner.Parent = submitBtn
+	submitBtn.MouseButton1Click:Connect(function()
+		playKeyboardSound()
+		if keyBox.Text == CORRECT_KEY then
+			saveData(KEY_FILE_NAME, { KeyValid = true })
+			TweenService:Create(keyFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+				Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)
+			}):Play()
+			task.wait(0.3); keyGui:Destroy(); launchMainInterface()
+		else
+			boxStroke.Color = Color3.fromRGB(255, 90, 90); keyBox.Text = ""; keyBox.PlaceholderText = "Clé incorrecte !"
+			task.wait(1); boxStroke.Color = Color3.fromRGB(60, 70, 100); keyBox.PlaceholderText = "Clé..."
+		end
+	end)
+end
+
