@@ -1127,6 +1127,8 @@ local function launchMainInterface()
 		bar.Parent = headCrosshair
 	end
 
+	-- AMÉLIORATION COMPLÈTE DU PRÉDICTEUR (Aimlock avec Calculs Avancés: Distance, Hauteur, Saut, Spam Jump, Vitesse, Accélération/Décélération, Ping & Latence Serveur)
+	local targetTracker = {}
 	local function getTargetHitPosition(targetChar, dt)
 		local head = targetChar:FindFirstChild("Head")
 		local upperTorso = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso")
@@ -1134,19 +1136,48 @@ local function launchMainInterface()
 		local humanoid = targetChar:FindFirstChildOfClass("Humanoid")
 		if not rootPart then return nil end
 		if humanoid and humanoid.Health <= 0 then return nil end
+
 		local baseTargetPos
 		if head then baseTargetPos = head.Position
 		elseif upperTorso then baseTargetPos = upperTorso.Position + Vector3.new(0, 1, 0)
 		else baseTargetPos = rootPart.Position + Vector3.new(0, 1.5, 0) end
 
-		local ping = 0.05
-		pcall(function() ping = localPlayer:GetNetworkPing() * 2 + 0.035 end)
-		ping = math.clamp(ping, 0.02, 0.35)
+		-- Suivi cinématique et historique des positions pour calcul d'accélération et décélération
+		local currentTick = tick()
+		local trackData = targetTracker[targetChar]
+		if not trackData then
+			trackData = { lastPos = rootPart.Position, lastVelocity = rootPart.AssemblyLinearVelocity, acceleration = Vector3.zero, lastTick = currentTick }
+			targetTracker[targetChar] = trackData
+		end
 
+		local timeDelta = currentTick - trackData.lastTick
+		if timeDelta > 0.0001 then
+			local currentVel = rootPart.AssemblyLinearVelocity
+			trackData.acceleration = (currentVel - trackData.lastVelocity) / timeDelta
+			trackData.lastVelocity = currentVel
+			trackData.lastPos = rootPart.Position
+			trackData.lastTick = currentTick
+		end
+
+		-- Calcul précis de la latence réseau (Ping + Round-Trip Server Latency)
+		local serverLatency = 0.05
+		pcall(function()
+			serverLatency = localPlayer:GetNetworkPing() + (Workspace:GetServerTimeNow() - currentTick > 0 and 0.05 or 0.03)
+		end)
+		serverLatency = math.clamp(serverLatency, 0.015, 0.4)
+
+		-- Distance utilisateur -> cible pour adapter l'anticipation balistique
+		local distance = (Camera.CFrame.Position - rootPart.Position).Magnitude
+
+		-- Vitesse, Accélération et Décélération compensées
 		local vel = rootPart.AssemblyLinearVelocity
-		local horizontal = Vector3.new(vel.X, 0, vel.Z) * ping
-		local verticalY = vel.Y * ping
+		local accel = trackData.acceleration
+		
+		-- Formule cinématique complète (d = v*t + 0.5*a*t^2)
+		local predictedMovement = (vel * serverLatency) + (0.5 * accel * (serverLatency ^ 2))
 
+		-- Gestion de la hauteur, du saut (Jump), du spam jump et de la gravité
+		local verticalY = predictedMovement.Y
 		local inAir = false
 		if humanoid then
 			local st = humanoid:GetState()
@@ -1155,9 +1186,16 @@ local function launchMainInterface()
 				or st == Enum.HumanoidStateType.FallingDown)
 				or humanoid.FloorMaterial == Enum.Material.Air
 		end
-		if inAir then verticalY = verticalY - (0.5 * Workspace.Gravity * ping * ping) end
 
-		return baseTargetPos + horizontal + Vector3.new(0, verticalY + 0.1, 0)
+		if inAir then
+			-- Calcul de chute/saut avec application de la gravité de Roblox
+			verticalY = vel.Y * serverLatency - (0.5 * Workspace.Gravity * (serverLatency ^ 2))
+		end
+
+		-- Ajustement dynamique additionnel basé sur la distance pour contrer la latence perçue
+		local distanceCompensationFactor = math.clamp(distance / 300, 0.95, 1.15)
+
+		return baseTargetPos + Vector3.new(predictedMovement.X * distanceCompensationFactor, verticalY, predictedMovement.Z * distanceCompensationFactor)
 	end
 
 	local function hasLineOfSight(targetPos, targetChar)
@@ -1456,4 +1494,3 @@ else
 		end
 	end)
 end
-
