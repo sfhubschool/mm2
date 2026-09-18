@@ -39,7 +39,7 @@ if Workspace:FindFirstChild("ESPFolder") then Workspace.ESPFolder:Destroy() end
 local currentLanguage = savedSettings.Language or "FR"
 local translations = {
 	FR = {
-		Brand="zizi le gay", Home="Accueil", ESP="ESP", AutoFarm="Autofarm",
+		Brand="lilia la pro", Home="Accueil", ESP="ESP", AutoFarm="Autofarm",
 		SheriffTab="Sheriff", MurderTab="Murderer", TrollTab="Troll", CrosshairTab="Crosshairs",
 		Themes="Thèmes", Backgrounds="Fonds", Settings="Paramètres",
 		User="User : ", Pseudo="Pseudo : @",
