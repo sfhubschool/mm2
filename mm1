@@ -90,7 +90,7 @@ local translations = {
 		ShiftLockAlert="Shift lock activé automatiquement ! / Shift lock enabled automatically!",
 		CrosshairEnable="   Enable Animated Crosshair: ", CrosshairSpeed="⚡ Animation Speed: ",
 		CrosshairColor="🎨 Change Color"
-		WalkSpeedLabel=" Vitesse(WalkSpeed):,
+		WalkSpeedLabel=" Vitesse(WalkSpeed):",
 	}
 }
 local function L(key)
