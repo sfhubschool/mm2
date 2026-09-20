@@ -1549,3 +1549,36 @@ else
 		end
 	end)
 end
+
+
+
+
+
+
+
+
+
+-- Configuration
+local PLACE_ID_QUIS_EST_AUTORISE = 142823291 -- ID officiel de Murder Mystery 2
+local MESSAGE_EXPULSION = "Accès refusé : Ce script ne peut être exécuté que dans Murder Mystery 2."
+
+-- Fonction de vérification de sécurité
+local function verifierJeuActuel()
+    if game.PlaceId ~= PLACE_ID_QUIS_EST_AUTORISE then
+        local joueurLocal = game.Players.LocalPlayer
+        if joueurLocal then
+            -- Expulse instantanément le joueur avec le message d'avertissement
+            joueurLocal:Kick(MESSAGE_EXPULSION)
+        end
+        return false
+    end
+    return true
+end
+
+-- Lancement de la sécurité
+if verifierJeuActuel() then
+    print("[SF_HUB] Jeu vérifié avec succès. Chargement des fonctionnalités MM2...")
+    
+    -- Mets ton code principal ici (ton UI SF_HUB, tes scripts de skin, etc.)
+    
+end
