@@ -62,7 +62,7 @@ local translations = {
 		TransitHint="(Vitesse déplacement)",
 		ShiftLockAlert="Shift lock activé automatiquement ! / Shift lock enabled automatically!",
 		CrosshairEnable="   Activer Crosshair Animé : ", CrosshairSpeed="⚡ Vitesse Animation : ",
-		CrosshairColor="🎨 Changer Couleur (RVB Hex/Preset)"
+		CrosshairColor="🎨 Changer Couleur (RVB Hex/Preset): ",
 		WalkSpeedLabel=" Vitesse(WalkSpeed):",
 	},
 	EN = {
@@ -89,7 +89,7 @@ local translations = {
 		TransitHint="(Travel speed)",
 		ShiftLockAlert="Shift lock activé automatiquement ! / Shift lock enabled automatically!",
 		CrosshairEnable="   Enable Animated Crosshair: ", CrosshairSpeed="⚡ Animation Speed: ",
-		CrosshairColor="🎨 Change Color"
+		CrosshairColor="🎨 Change Color:",
 		WalkSpeedLabel=" Vitesse(WalkSpeed):",
 	}
 }
