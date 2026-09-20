@@ -511,25 +511,34 @@ local function launchMainInterface()
 		end
 	end)
 
-Intégration du réglage WalkSpeed dans l'onglet ESP (par exemple, ou un autre onglet
-local currentWalkSpeed = savedSettings. WalkSpeed or 16
+-- ==========================================
+-- AJOUT DU WALKSPEED DANS L'ESP
+-- ==========================================
+local currentWalkSpeed = savedSettings.WalkSpeed or 16
+
+-- Ajout direct de la carte dans l'onglet ESP
 buildSpeedCard(pages.ESP, L("WalkSpeedLabel"),
-function() return currentWalkSpeed end,
-function (val)
-currentWalkSpeed = val
-savedSettings. WalkSpeed = val
-saveData (SAVE_FILE_NAME, savedSettings)
-local hum = getHum()
-if hum then hum. WalkSpeed = val end
-end,
-4, 16, 250, " (16 = Normal)", 10)
--- Appliquer la vitesse en boucle au cas où le joueur meurt et respawn
-RunService. RenderStepped: Connect (function()
-local hum = getHum()
-if hum and hum. WalkSpeed ~= currentWalkSpeed and currentWalkSpeed > 16 then
-   hum.WalkSpeed=currentWalkSpeed
-  end
+    function() return currentWalkSpeed end,
+    function(val)
+        currentWalkSpeed = val
+        savedSettings.WalkSpeed = val
+        saveData(SAVE_FILE_NAME, savedSettings)
+        local hum = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = val end
+    end,
+    4, 16, 250, " (16 = Normal)", 10
+)
+
+-- Boucle pour réappliquer la vitesse au respawn
+RunService.RenderStepped:Connect(function()
+    local char = localPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum and hum.WalkSpeed ~= currentWalkSpeed and currentWalkSpeed > 16 then
+        hum.WalkSpeed = currentWalkSpeed
+    end
 end)
+
+
 
 
 
