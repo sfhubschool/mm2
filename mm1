@@ -205,10 +205,7 @@ local function toggleAimlockFloatingPanel(enable)
 	end
 end
 
-createPlayerOption(" Vitesse (WalkSpeed)", 16, function(val)
-		local hum = getHum()
-		if hum then hum.WalkSpeed = val end
-	end)
+
 
 
 
