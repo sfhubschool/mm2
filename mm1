@@ -205,6 +205,14 @@ local function toggleAimlockFloatingPanel(enable)
 	end
 end
 
+createPlayerOption(" Vitesse (WalkSpeed)", 16, function(val)
+		local hum = getHum()
+		if hum then hum.WalkSpeed = val end
+	end)
+
+
+
+
 local function launchMainInterface()
 	local screenGui = Instance.new("ScreenGui")
 	screenGui.Name = "UltraModernPanel"; screenGui.ResetOnSpawn = false; screenGui.Parent = playerGui
