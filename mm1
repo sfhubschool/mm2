@@ -511,32 +511,7 @@ local function launchMainInterface()
 		end
 	end)
 
--- ==========================================
--- AJOUT DU WALKSPEED DANS L'ESP
--- ==========================================
-local currentWalkSpeed = savedSettings.WalkSpeed or 16
 
--- Ajout direct de la carte dans l'onglet ESP
-buildSpeedCard(pages.ESP, L("WalkSpeedLabel"),
-    function() return currentWalkSpeed end,
-    function(val)
-        currentWalkSpeed = val
-        savedSettings.WalkSpeed = val
-        saveData(SAVE_FILE_NAME, savedSettings)
-        local hum = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum.WalkSpeed = val end
-    end,
-    4, 16, 250, " (16 = Normal)", 10
-)
-
--- Boucle pour réappliquer la vitesse au respawn
-RunService.RenderStepped:Connect(function()
-    local char = localPlayer.Character
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if hum and hum.WalkSpeed ~= currentWalkSpeed and currentWalkSpeed > 16 then
-        hum.WalkSpeed = currentWalkSpeed
-    end
-end)
 
 
 
@@ -839,6 +814,44 @@ end)
 			else task.wait(0.2) end
 		end
 	end)
+
+-- ==========================================
+-- AJOUT DU WALKSPEED DANS L'ESP
+-- ==========================================
+local currentWalkSpeed = savedSettings.WalkSpeed or 16
+
+buildSpeedCard(pages.ESP, L("WalkSpeedLabel"),
+    function() return currentWalkSpeed end,
+    function(val)
+        currentWalkSpeed = val
+        savedSettings.WalkSpeed = val
+        saveData(SAVE_FILE_NAME, savedSettings)
+        local hum = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = val end
+    end,
+    4, 16, 250, " (16 = Normal)", 10
+)
+
+RunService.RenderStepped:Connect(function()
+    local char = localPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum and hum.WalkSpeed ~= currentWalkSpeed and currentWalkSpeed > 16 then
+        hum.WalkSpeed = currentWalkSpeed
+    end
+end)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	local function findPlayerByRole(targetRole)
 		for _, plr in ipairs(Players:GetPlayers()) do
