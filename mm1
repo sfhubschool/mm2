@@ -63,7 +63,7 @@ local translations = {
 		ShiftLockAlert="Shift lock activé automatiquement ! / Shift lock enabled automatically!",
 		CrosshairEnable="   Activer Crosshair Animé : ", CrosshairSpeed="⚡ Vitesse Animation : ",
 		CrosshairColor="🎨 Changer Couleur (RVB Hex/Preset)"
-		WalkSpeedLabel=" Vitesse(WalkSpeed):"
+		WalkSpeedLabel=" Vitesse(WalkSpeed):",
 	},
 	EN = {
 		Brand="⚡ zizi le gay", Home="Home", ESP="ESP", AutoFarm="Autofarm",
@@ -90,7 +90,7 @@ local translations = {
 		ShiftLockAlert="Shift lock activé automatiquement ! / Shift lock enabled automatically!",
 		CrosshairEnable="   Enable Animated Crosshair: ", CrosshairSpeed="⚡ Animation Speed: ",
 		CrosshairColor="🎨 Change Color"
-		WalkSpeedLabel=" Vitesse(WalkSpeed):"
+		WalkSpeedLabel=" Vitesse(WalkSpeed):,
 	}
 }
 local function L(key)
