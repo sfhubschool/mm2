@@ -63,7 +63,7 @@ local translations = {
 		ShiftLockAlert="Shift lock activé automatiquement ! / Shift lock enabled automatically!",
 		CrosshairEnable="   Activer Crosshair Animé : ", CrosshairSpeed="⚡ Vitesse Animation : ",
 		CrosshairColor="🎨 Changer Couleur (RVB Hex/Preset)"
-
+		WalkSpeedLabel=" Vitesse(WalkSpeed):"
 	},
 	EN = {
 		Brand="⚡ zizi le gay", Home="Home", ESP="ESP", AutoFarm="Autofarm",
@@ -90,7 +90,7 @@ local translations = {
 		ShiftLockAlert="Shift lock activé automatiquement ! / Shift lock enabled automatically!",
 		CrosshairEnable="   Enable Animated Crosshair: ", CrosshairSpeed="⚡ Animation Speed: ",
 		CrosshairColor="🎨 Change Color"
-
+		WalkSpeedLabel=" Vitesse(WalkSpeed):"
 	}
 }
 local function L(key)
@@ -513,6 +513,31 @@ local function launchMainInterface()
 			task.wait(3)
 		end
 	end)
+
+Intégration du réglage WalkSpeed dans l'onglet ESP (par exemple, ou un autre onglet
+local currentWalkSpeed = savedSettings. WalkSpeed or 16
+buildSpeedCard(pages.ESP, L("WalkSpeedLabel"),
+function() return currentWalkSpeed end,
+function (val)
+currentWalkSpeed = val
+savedSettings. WalkSpeed = val
+saveData (SAVE_FILE_NAME, savedSettings)
+local hum = getHum()
+if hum then hum. WalkSpeed = val end
+end,
+4, 16, 250, " (16 = Normal)", 10)
+-- Appliquer la vitesse en boucle au cas où le joueur meurt et respawn
+RunService. RenderStepped: Connect (function()
+local hum = getHum()
+if hum and hum. WalkSpeed ~= currentWalkSpeed and currentWalkSpeed > 16 then
+   hum.WalkSpeed=currentWalkSpeed
+  end
+end)
+
+
+
+
+
 
 	-- ESP
 	local espEnabled = savedSettings.EspEnabled or false
