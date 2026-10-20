@@ -1,0 +1,96 @@
+local Players = game:GetService("Players")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local VirtualUser = game:GetService("VirtualUser")
+local CoreGui = game:GetService("CoreGui")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+
+-- Supprime l'ancienne interface si elle existe déjà
+if CoreGui:FindFirstChild("AntiAFK_SF") then
+    CoreGui.AntiAFK_SF:Destroy()
+end
+
+-- ==========================================
+-- 1. CRÉATION DE L'INTERFACE VISUELLE (GUI)
+-- ==========================================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AntiAFK_SF"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = CoreGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 320, 0, 85)
+mainFrame.Position = UDim2.new(0.5, -160, 0, 25)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true -- Tu peux la déplacer où tu veux
+mainFrame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = mainFrame
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0, 30)
+titleLabel.BackgroundTransparency = 1
+titleLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+titleLabel.TextSize = 15
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.Text = "⚡ ANTI-AFK NUIT — ACTIF"
+titleLabel.Parent = mainFrame
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, 0, 0, 45)
+statusLabel.Position = UDim2.new(0, 0, 0, 30)
+statusLabel.BackgroundTransparency = 1
+statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+statusLabel.TextSize = 12
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.Text = "Cycles d'activité : 0\nStatut : Initialisation..."
+statusLabel.Parent = mainFrame
+
+-- ==========================================
+-- 2. SÉCURITÉ NATIVE (Événement Idled)
+-- ==========================================
+player.Idled:Connect(function()
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new(0, 0))
+    statusLabel.Text = statusLabel.Text .. "\n[!] Signal Roblox AFK évité !"
+end)
+
+-- ==========================================
+-- 3. BOUCLE ACTIVE TOUTE LA NUIT
+-- ==========================================
+task.spawn(function()
+    local cycles = 0
+    while true do
+        task.wait(30) -- Vérification toutes les 30 secondes
+        cycles = cycles + 1
+        
+        -- A. Clic de souris physique sur l'écran
+        local mousePos = Vector2.new(300, 300)
+        VirtualInputManager:SendMouseButtonEvent(mousePos.X, mousePos.Y, 0, true, game, 0)
+        task.wait(0.05)
+        VirtualInputManager:SendMouseButtonEvent(mousePos.X, mousePos.Y, 0, false, game, 0)
+        
+        -- B. Simulation de la touche Espace
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+        task.wait(0.05)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+        
+        -- C. Micro-mouvement de caméra
+        local camera = Workspace.CurrentCamera
+        if camera then
+            camera.CFrame = camera.CFrame * CFrame.Angles(0, math.rad(1), 0)
+            task.wait(0.05)
+            camera.CFrame = camera.CFrame * CFrame.Angles(0, math.rad(-1), 0)
+        end
+        
+        -- Mise à jour de la GUI
+        statusLabel.Text = "Cycles d'activité validés : " .. cycles .. "\nDernière action : En ligne (" .. os.date("%H:%M:%S") .. ")"
+    end
+end)
+
+print("[SF_HUB] Script Anti-AFK Nuit prêt et chargé avec succès !")
